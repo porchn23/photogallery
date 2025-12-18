@@ -1,6 +1,11 @@
-import { X, Camera, Clock, Download, User, Phone } from 'lucide-react'; // ✅ เพิ่ม Icon Phone
+import { X, Camera, Clock, Download, Briefcase, Phone } from 'lucide-react';
 
-export default function PhotoModal({ photo, onClose }) {
+/**
+ * AI FACE-GRID: PHOTO MODAL COMPONENT
+ * Version: 4.4 (Unified Credit System - Full Code)
+ */
+
+export default function PhotoModal({ photo, onClose, eventOwner }) {
   if (!photo) return null;
 
   const formatDateTimeFull = (dateString) => {
@@ -20,65 +25,66 @@ export default function PhotoModal({ photo, onClose }) {
         style={{ backgroundImage: 'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAIklEQVQIW2NkQAJfv379zwjjgzj//v37zwiSAxJASoA4ZAAVnQ45U8H67QAAAABJRU5ErkJggg==")' }}
       >
         {/* ปุ่มปิด */}
-        <button
-          onClick={onClose}
-          className="absolute -top-4 -right-4 md:-top-5 md:-right-5 bg-white text-black p-1.5 rounded-full shadow-lg hover:bg-zinc-200 transition-colors z-10"
-        >
+        <button onClick={onClose} className="absolute -top-4 -right-4 md:-top-5 md:-right-5 bg-white text-black p-1.5 rounded-full shadow-lg hover:bg-zinc-200 transition-colors z-10">
           <X size={20} />
         </button>
 
         {/* รูปภาพ */}
-        <div className="bg-white p-1 shadow-sm">
-          <img src={photo.url_raw} alt="Full Size" className="w-full h-auto max-h-[70vh] object-contain" />
+        <div className="bg-white p-1 shadow-sm overflow-hidden rounded-sm">
+          <img src={photo.url_raw} alt="WSWSS Gallery" className="w-full h-auto max-h-[65vh] object-contain mx-auto" />
         </div>
 
-        {/* รายละเอียด */}
-        <div className="mt-3 md:mt-4 flex justify-between items-end text-zinc-800 font-serif">
-          <div>
-            <div className="flex items-center gap-1.5 text-zinc-600 mb-2">
-              <Camera size={14} />
-              <span className="text-xs uppercase tracking-wider font-bold">Original Photo</span>
+        {/* เครดิตและรายละเอียด */}
+        <div className="mt-4 flex flex-col md:flex-row justify-between gap-4 border-t border-zinc-200 pt-4 font-serif">
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Credit: ช่างภาพ หรือ เจ้าของงาน (Fallback) */}
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-500">
+                  <Camera size={14} />
+                </div>
+                <div>
+                  <p className="text-[9px] uppercase tracking-widest text-zinc-400 font-bold">Photo Credit</p>
+                  <p className="text-sm font-bold text-zinc-800 italic">{photo.credit?.name}</p>
+                  {photo.credit?.phone && (
+                    <div className="flex items-center gap-1 text-zinc-400 text-[10px]">
+                      <Phone size={10} /> <span>{photo.credit.phone}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Event Host */}
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center text-amber-600">
+                  <Briefcase size={14} />
+                </div>
+                <div>
+                  <p className="text-[9px] uppercase tracking-widest text-zinc-400 font-bold">Event Owner</p>
+                  <p className="text-sm font-bold text-zinc-700">{eventOwner}</p>
+                </div>
+              </div>
             </div>
             
-            {/* ✅ ส่วนแสดงเครดิต (ชื่อ + เบอร์) */}
-            <div className="mb-3 pl-0.5 border-l-2 border-yellow-400 pl-2">
-                <div className="flex items-center gap-1.5 text-zinc-800">
-                    <User size={14} className="text-zinc-500" />
-                    <span className="text-sm font-bold italic">{photo.credit?.name}</span>
-                </div>
-                {/* ถ้ามีเบอร์โทร ให้โชว์ด้วย */}
-                {photo.credit?.phone && (
-                    <div className="flex items-center gap-1.5 text-zinc-500 mt-0.5">
-                        <Phone size={12} />
-                        <span className="text-xs font-mono">{photo.credit.phone}</span>
-                    </div>
-                )}
-            </div>
-
-            {/* วันที่เวลา */}
+            {/* เวลาถ่ายภาพ */}
             {photo.taken_at && (() => {
               const { date, time } = formatDateTimeFull(photo.taken_at);
               return (
-                <div>
-                  <p className="text-sm md:text-base font-medium leading-tight">{date}</p>
-                  <div className="flex items-center gap-1 text-xs text-zinc-500 mt-0.5">
-                    <Clock size={10} />
-                    <span>{time}</span>
-                  </div>
+                <div className="flex items-center gap-2 pl-1 border-l-2 border-amber-400 py-1 font-sans">
+                  <Clock size={12} className="text-zinc-400" />
+                  <p className="text-[11px] text-zinc-500">{date} • {time}</p>
                 </div>
               );
             })()}
           </div>
 
-          {/* ปุ่มดาวน์โหลด */}
           <a
             href={photo.url_raw}
             download
             target="_blank"
-            className="flex items-center gap-1 bg-zinc-800 text-[#f8f8f0] px-3 py-1.5 md:px-4 md:py-2 rounded-sm text-xs md:text-sm font-bold shadow-md hover:bg-zinc-700 transition-all active:translate-y-0.5"
+            className="self-center md:self-end flex items-center gap-2 bg-zinc-800 text-[#f8f8f0] px-6 py-3 rounded-sm text-xs font-bold shadow-md hover:bg-zinc-700 transition-all active:translate-y-0.5"
           >
-            <Download size={14} />
-            DOWNLOAD
+            <Download size={14} /> DOWNLOAD
           </a>
         </div>
       </div>
