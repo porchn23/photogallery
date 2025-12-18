@@ -12,7 +12,7 @@ import QRModal from '@/src/components/QRModal';
 
 /**
  * AI FACE-GRID: EVENT GALLERY PAGE
- * Version: 5.3 (Strict Variable Rollback & Fix Modal - Full Code)
+ * Version: 5.7 (Full Real-time Subscription - Full Code)
  * แบรนด์: WSWSS
  */
 
@@ -20,7 +20,7 @@ export default function EventGallery() {
   const params = useParams();
   const eventId = params?.id;
 
-  // --- STATE (ยึดตามตัวแปรเดิมที่คุณเขียนไว้) ---
+  // --- STATE ---
   const [clusters, setClusters] = useState([]);
   const [photos, setPhotos] = useState([]);
   const [photoFaces, setPhotoFaces] = useState([]); 
@@ -34,9 +34,7 @@ export default function EventGallery() {
   // --- LOGIC: ANTI-BACK ---
   useEffect(() => {
     window.history.pushState(null, null, window.location.href);
-    const handlePopState = () => {
-      window.history.pushState(null, null, window.location.href);
-    };
+    const handlePopState = () => window.history.pushState(null, null, window.location.href);
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
@@ -57,7 +55,15 @@ export default function EventGallery() {
   }, [eventId]);
 
   useEffect(() => {
-    if (eventId && eventInfo.ownerName !== '') fetchDataFromUsersTable();
+    if (eventId && eventInfo.ownerName !== '') {
+      fetchDataFromUsersTable();
+      
+      // ✅ เปิดระบบ Real-time
+      const channel = setupRealtimeSubscription();
+      return () => {
+        if (channel) supabase.removeChannel(channel);
+      };
+    }
   }, [eventId, eventInfo.ownerName]);
 
   const handleKeyDown = useCallback((event) => {
@@ -72,12 +78,30 @@ export default function EventGallery() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
+  // --- REAL-TIME LOGIC ---
+  function setupRealtimeSubscription() {
+    const channel = supabase.channel(`event-realtime-${eventId}`)
+      // 📸 เมื่อมีรูปภาพใหม่เพิ่มเข้ามา
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'photos' }, (payload) => {
+        if (payload.new.event_id === eventId) {
+          fetchDataFromUsersTable(); // ดึงข้อมูลใหม่เพื่อจัดลำดับเครดิตและรูปภาพ
+        }
+      })
+      // 👤 เมื่อมีการแท็กใบหน้า หรือ AI สร้าง Cluster ใหม่
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'photo_faces' }, () => {
+        fetchDataFromUsersTable(); // อัปเดต FaceBar และ Mapping
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'face_clusters' }, () => {
+        fetchDataFromUsersTable(); // อัปเดตสถานะล่าสุดของแต่ละบุคคล
+      })
+      .subscribe();
+    
+    return channel;
+  }
+
+  // --- FETCHING FUNCTIONS ---
   async function fetchEventDetails() {
-    const { data } = await supabase
-      .from('events')
-      .select('title, start_time, end_time, users(full_name)')
-      .eq('id', eventId)
-      .single();
+    const { data } = await supabase.from('events').select('title, start_time, end_time, users(full_name)').eq('id', eventId).single();
     if (data) {
       setEventInfo({
         title: data.title,
@@ -89,7 +113,7 @@ export default function EventGallery() {
   }
 
   async function fetchDataFromUsersTable() {
-    setLoading(true);
+    // หมายเหตุ: ไม่สั่ง setLoading(true) ระหว่างโหลด Real-time เพื่อไม่ให้หน้าจอกระพริบ
     const { data: cameras } = await supabase.from('event_cameras').select('serial_number, users(full_name, phone_number)').eq('event_id', eventId);
     const camMap = (cameras || []).reduce((acc, cam) => {
       const u = Array.isArray(cam.users) ? cam.users[0] : cam.users;
@@ -115,12 +139,7 @@ export default function EventGallery() {
       faces.forEach(f => {
         if (!faceMap.has(f.id)) {
           const m = mapping.find(mi => mi.cluster_id === f.id && mi.photo_id === f.latest_photo_id);
-          faceMap.set(f.id, {
-            id: f.id,
-            url: f.photos?.url_thumb,
-            box: m?.bounding_box,
-            count: mapping.filter(mi => mi.cluster_id === f.id).length
-          });
+          faceMap.set(f.id, { id: f.id, url: f.photos?.url_thumb, box: m?.bounding_box, count: mapping.filter(mi => mi.cluster_id === f.id).length });
         }
       });
       setClusters(Array.from(faceMap.values()));
@@ -131,26 +150,14 @@ export default function EventGallery() {
   return (
     <div className="fixed inset-0 bg-black text-white flex flex-col font-sans overflow-hidden">
       <Header onQRClick={() => setShowQR(true)} />
-      
       <div className="flex-1 overflow-y-auto scrollbar-hide">
         <div className="sticky top-0 z-40 bg-black">
           <FaceBar clusters={clusters} selectedClusterId={selectedClusterId} onSelectCluster={setSelectedClusterId} eventInfo={eventInfo} />
         </div>
-        
-        {/* คืนค่าการส่งฟังก์ชัน onPhotoClick แบบเดิม */}
-        <PhotoGrid 
-          photos={filteredPhotos} 
-          loading={loading} 
-          onPhotoClick={(photo) => setSelectedPhotoForModal(photo)} 
-        />
+        <PhotoGrid photos={filteredPhotos} loading={loading} onPhotoClick={(photo) => setSelectedPhotoForModal(photo)} />
       </div>
-
       <QRModal show={showQR} onClose={() => setShowQR(false)} url={currentUrl} />
-      <PhotoModal 
-        photo={selectedPhotoForModal} 
-        onClose={() => setSelectedPhotoForModal(null)} 
-        eventOwner={eventInfo.ownerName} 
-      />
+      <PhotoModal photo={selectedPhotoForModal} onClose={() => setSelectedPhotoForModal(null)} eventOwner={eventInfo.ownerName} />
     </div>
   );
 }
