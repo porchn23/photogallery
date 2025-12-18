@@ -42,7 +42,7 @@ export default function EventPage() {
       <div className="pt-6 px-4 text-center">
         <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600">{event.title}</h1>
         <div className="flex justify-center gap-3 text-gray-500 text-xs mt-2">
-          <span className="flex items-center gap-1"><Calendar size={12}/> {new Date(event.start_time).toLocaleDateString()}</span>
+          <span className="flex items-center gap-1"><Calendar size={12}/> {new Date(event.start_time).toLocaleDateString()} - {new Date(event.end_time).toLocaleDateString()}</span>
           <span className="flex items-center gap-1"><ImageIcon size={12}/> {allPhotos.length}</span>
         </div>
       </div>
