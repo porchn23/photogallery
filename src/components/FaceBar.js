@@ -3,8 +3,8 @@ import { Camera, ImageIcon, Calendar } from 'lucide-react';
 
 /**
  * AI FACE-GRID: FACE BAR COMPONENT
- * Version: 3.9 (Photo Count & Dynamic Labels)
- * แบรนด์: WSWSS
+ * Version: 5.6 (Overlay Notch UI - Full Code)
+ * แบรนด์: WSWSS (พรพรร)
  */
 
 export default function FaceBar({ clusters, selectedClusterId, onSelectCluster, eventInfo }) {
@@ -15,7 +15,8 @@ export default function FaceBar({ clusters, selectedClusterId, onSelectCluster, 
   };
 
   return (
-    <div className="sticky top-[60px] z-40">
+    <div className="relative">
+      {/* แถบใบหน้าหลัก */}
       <div className="bg-black/95 backdrop-blur-md border-b border-zinc-800 py-4 shadow-xl relative z-20">
         <div className="flex overflow-x-auto gap-5 px-4 pb-2 scrollbar-hide items-start">
           
@@ -68,14 +69,8 @@ export default function FaceBar({ clusters, selectedClusterId, onSelectCluster, 
                     </div>
                   )}
                 </div>
-                
-                {/* 🔥 ข้อความใต้ใบหน้า: แสดงจำนวนรูป หรือ VIEWING */}
                 <div className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-tight transition-all ${isSelected ? 'bg-yellow-400 text-black scale-105' : 'bg-zinc-800 text-zinc-400'}`}>
-                  {isSelected ? (
-                    'VIEWING'
-                  ) : (
-                    `${face.count || 0} PHOTOS`
-                  )}
+                  {isSelected ? 'VIEWING' : `${face.count || 0} PHOTOS`}
                 </div>
               </div>
             );
@@ -83,7 +78,21 @@ export default function FaceBar({ clusters, selectedClusterId, onSelectCluster, 
         </div>
       </div>
       
-      {/* ... (The Notch คงเดิม) */}
+      {/* ✅ แก้ไข: Notch แบบ Absolute ทับบน PhotoGrid */}
+      <div className="absolute left-0 right-0 top-[100%] flex justify-center -mt-[1px] z-30 pointer-events-none">
+        <div className="bg-zinc-800/90 backdrop-blur-md border-b border-x border-zinc-700 rounded-b-[20px] px-6 py-2 shadow-2xl flex flex-col items-center pointer-events-auto min-w-[240px]">
+          <h2 className="text-yellow-400 text-[13px] font-bold tracking-tight text-center leading-tight">
+            {eventInfo.title}
+          </h2>
+          <div className="flex items-center gap-1 text-[9px] text-zinc-400 font-medium">
+            <Calendar size={9} />
+            <span>
+              {formatDate(eventInfo.start)}
+              {eventInfo.end ? ` - ${formatDate(eventInfo.end)}` : ''}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
