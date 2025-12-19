@@ -18,9 +18,6 @@ export default function Header({ onQRClick }) {
         >
           <QrCode size={18} />
         </button>
-        <button className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-full text-zinc-300 hover:text-white transition-colors">
-          <Menu size={18} />
-        </button>
       </div>
     </header>
   );

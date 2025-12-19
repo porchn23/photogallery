@@ -89,7 +89,7 @@ export default function EventGallery() {
     // แก้ไข: ลบ end_time และใช้ Join users ให้ตรงตาม Schema
     const { data, error } = await supabase
       .from('events')
-      .select('title, start_time, users!events_owner_id_fkey(full_name)')
+      .select('title, start_time, join_code, users!events_owner_id_fkey(full_name)')
       .eq('id', eventId)
       .single();
 
@@ -97,6 +97,7 @@ export default function EventGallery() {
       setEventInfo({
         title: data.title,
         start: data.start_time ? new Date(data.start_time) : null,
+        joinCode: data.join_code, // ✅ เก็บลง state
         ownerName: data.users?.full_name || 'WSWSS'
       });
     }
@@ -176,8 +177,14 @@ export default function EventGallery() {
         </div>
         <PhotoGrid photos={filteredPhotos} loading={loading} onPhotoClick={(photo) => setSelectedPhotoForModal(photo)} />
       </div>
-      <QRModal show={showQR} onClose={() => setShowQR(false)} url={currentUrl} />
-      <PhotoModal photo={selectedPhotoForModal} onClose={() => setSelectedPhotoForModal(null)} eventOwner={eventInfo.ownerName} />
+      <QRModal show={showQR} onClose={() => setShowQR(false)} url={currentUrl} title={eventInfo.title} joinCode={eventInfo.joinCode} />
+      <PhotoModal 
+        photo={selectedPhotoForModal} 
+        allPhotos={filteredPhotos} // ✅ ส่งรูปทั้งหมดที่ผ่านการ filter แล้ว
+        onClose={() => setSelectedPhotoForModal(null)} 
+        onPhotoChange={setSelectedPhotoForModal} // ✅ เพิ่ม callback สำหรับเปลี่ยนรูป
+        eventOwner={eventInfo.ownerName} 
+      />
     </div>
   );
 }
