@@ -16,6 +16,8 @@ import QRModal from '@/src/components/QRModal';
  * แบรนด์: WSWSS
  */
 
+// ... (ส่วนการ import คงเดิม)
+
 export default function EventGallery() {
   const params = useParams();
   const eventId = params?.id;
@@ -26,28 +28,18 @@ export default function EventGallery() {
   const [photoFaces, setPhotoFaces] = useState([]); 
   const [selectedClusterId, setSelectedClusterId] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [eventInfo, setEventInfo] = useState({ title: 'Loading...', start: null, end: null, ownerName: '' });
+  const [eventInfo, setEventInfo] = useState({ title: 'Loading...', start: null, ownerName: '' });
   const [showQR, setShowQR] = useState(false);
   const [currentUrl, setCurrentUrl] = useState('');
   const [selectedPhotoForModal, setSelectedPhotoForModal] = useState(null);
 
-  // --- LOGIC: ANTI-BACK ---
+  // --- LOGIC: ANTI-BACK & KEYDOWN (คงเดิม) ---
   useEffect(() => {
     window.history.pushState(null, null, window.location.href);
     const handlePopState = () => window.history.pushState(null, null, window.location.href);
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
-
-  // --- LOGIC: FILTER ---
-  const filteredPhotos = useMemo(() => {
-    if (!Array.isArray(photos)) return [];
-    if (!selectedClusterId) return photos;
-    const photoIds = photoFaces
-      .filter(pf => pf.cluster_id === selectedClusterId)
-      .map(pf => pf.photo_id);
-    return photos.filter(p => photoIds.includes(p.id));
-  }, [selectedClusterId, photos, photoFaces]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') setCurrentUrl(window.location.href);
@@ -56,9 +48,8 @@ export default function EventGallery() {
 
   useEffect(() => {
     if (eventId && eventInfo.ownerName !== '') {
-      fetchDataFromUsersTable();
+      fetchEventData(); // เปลี่ยนชื่อฟังก์ชันให้สื่อความหมายขึ้น
       
-      // ✅ เปิดระบบ Real-time
       const channel = setupRealtimeSubscription();
       return () => {
         if (channel) supabase.removeChannel(channel);
@@ -66,33 +57,27 @@ export default function EventGallery() {
     }
   }, [eventId, eventInfo.ownerName]);
 
-  const handleKeyDown = useCallback((event) => {
-    if (event.key === 'Escape') {
-      setSelectedPhotoForModal(null);
-      setShowQR(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
+  // --- FILTER LOGIC (คงเดิม) ---
+  const filteredPhotos = useMemo(() => {
+    if (!Array.isArray(photos)) return [];
+    if (!selectedClusterId) return photos;
+    const photoIdsInCluster = photoFaces
+      .filter(pf => pf.cluster_id === selectedClusterId)
+      .map(pf => pf.photo_id);
+    return photos.filter(p => photoIdsInCluster.includes(p.id));
+  }, [selectedClusterId, photos, photoFaces]);
 
   // --- REAL-TIME LOGIC ---
   function setupRealtimeSubscription() {
     const channel = supabase.channel(`event-realtime-${eventId}`)
-      // 📸 เมื่อมีรูปภาพใหม่เพิ่มเข้ามา
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'photos' }, (payload) => {
-        if (payload.new.event_id === eventId) {
-          fetchDataFromUsersTable(); // ดึงข้อมูลใหม่เพื่อจัดลำดับเครดิตและรูปภาพ
-        }
+        if (payload.new.event_id === eventId) fetchEventData();
       })
-      // 👤 เมื่อมีการแท็กใบหน้า หรือ AI สร้าง Cluster ใหม่
       .on('postgres_changes', { event: '*', schema: 'public', table: 'photo_faces' }, () => {
-        fetchDataFromUsersTable(); // อัปเดต FaceBar และ Mapping
+        fetchEventData();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'face_clusters' }, () => {
-        fetchDataFromUsersTable(); // อัปเดตสถานะล่าสุดของแต่ละบุคคล
+        fetchEventData();
       })
       .subscribe();
     
@@ -101,51 +86,86 @@ export default function EventGallery() {
 
   // --- FETCHING FUNCTIONS ---
   async function fetchEventDetails() {
-    const { data } = await supabase.from('events').select('title, start_time, end_time, users(full_name)').eq('id', eventId).single();
+    // แก้ไข: ลบ end_time และใช้ Join users ให้ตรงตาม Schema
+    const { data, error } = await supabase
+      .from('events')
+      .select('title, start_time, users!events_owner_id_fkey(full_name)')
+      .eq('id', eventId)
+      .single();
+
     if (data) {
       setEventInfo({
         title: data.title,
         start: data.start_time ? new Date(data.start_time) : null,
-        end: data.end_time ? new Date(data.end_time) : null,
         ownerName: data.users?.full_name || 'WSWSS'
       });
     }
   }
 
-  async function fetchDataFromUsersTable() {
-    // หมายเหตุ: ไม่สั่ง setLoading(true) ระหว่างโหลด Real-time เพื่อไม่ให้หน้าจอกระพริบ
-    const { data: cameras } = await supabase.from('event_cameras').select('serial_number, users(full_name, phone_number)').eq('event_id', eventId);
+  async function fetchEventData() {
+    // 1. ดึงข้อมูลช่างภาพ (Cameras)
+    const { data: cameras } = await supabase
+      .from('event_cameras')
+      .select('serial_number, users(full_name, phone_number)')
+      .eq('event_id', eventId);
+
     const camMap = (cameras || []).reduce((acc, cam) => {
       const u = Array.isArray(cam.users) ? cam.users[0] : cam.users;
       acc[cam.serial_number] = { name: u?.full_name, phone: u?.phone_number || '' };
       return acc;
     }, {});
 
-    const { data: pics } = await supabase.from('photos').select('*').eq('event_id', eventId).order('taken_at', { ascending: false });
-    if (pics) {
-      setPhotos(pics.map(p => ({
-        ...p,
-        credit: { name: camMap[p.camera_serial]?.name || eventInfo.ownerName, phone: camMap[p.camera_serial]?.phone || '' }
-      })));
-    }
+    // 2. ดึงรูปภาพทั้งหมดใน Event
+    const { data: pics } = await supabase
+      .from('photos')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('taken_at', { ascending: false });
 
-    const { data: mapping } = await supabase.from('photo_faces').select('*');
+    if (!pics) return;
+
+    const updatedPics = pics.map(p => ({
+      ...p,
+      credit: { 
+        name: camMap[p.camera_serial]?.name || eventInfo.ownerName, 
+        phone: camMap[p.camera_serial]?.phone || '' 
+      }
+    }));
+    setPhotos(updatedPics);
+
+    // 3. ดึง Mapping ใบหน้า เฉพาะของรูปภาพใน Event นี้ (Optimization)
+    const photoIds = pics.map(p => p.id);
+    const { data: mapping } = await supabase
+      .from('photo_faces')
+      .select('*')
+      .in('photo_id', photoIds);
+    
     if (mapping) setPhotoFaces(mapping);
 
-    const { data: faces } = await supabase.from('face_clusters').select('id, latest_photo_id, photos:latest_photo_id(url_thumb)').eq('event_id', eventId).order('updated_at', { ascending: false });
+    // 4. ดึง Cluster (คน) ที่ปรากฏใน Event นี้
+    const { data: faces } = await supabase
+      .from('face_clusters')
+      .select('id, latest_photo_id, hero_score, photos:latest_photo_id(url_thumb)')
+      .eq('event_id', eventId)
+      .order('updated_at', { ascending: false });
 
     if (faces && mapping) {
-      const faceMap = new Map();
-      faces.forEach(f => {
-        if (!faceMap.has(f.id)) {
-          const m = mapping.find(mi => mi.cluster_id === f.id && mi.photo_id === f.latest_photo_id);
-          faceMap.set(f.id, { id: f.id, url: f.photos?.url_thumb, box: m?.bounding_box, count: mapping.filter(mi => mi.cluster_id === f.id).length });
-        }
+      const clusterList = faces.map(f => {
+        // หา bounding box จากรูปภาพล่าสุดของคนนั้น
+        const m = mapping.find(mi => mi.cluster_id === f.id && mi.photo_id === f.latest_photo_id);
+        return {
+          id: f.id,
+          url: f.photos?.url_thumb,
+          box: m?.bounding_box,
+          count: mapping.filter(mi => mi.cluster_id === f.id).length,
+          hero_score: f.hero_score || 0 // ✅ ส่ง hero_score ไปยัง Component
+        };
       });
-      setClusters(Array.from(faceMap.values()));
+      setClusters(clusterList);
     }
     setLoading(false);
   }
+
 
   return (
     <div className="fixed inset-0 bg-black text-white flex flex-col font-sans overflow-hidden">

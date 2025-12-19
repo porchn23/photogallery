@@ -49,6 +49,7 @@ export default function FaceBar({ clusters, selectedClusterId, onSelectCluster, 
                 onClick={() => onSelectCluster(face.id)}
                 className={`flex-shrink-0 flex flex-col items-center cursor-pointer transition-all duration-300 ${isSelected ? 'scale-110 opacity-100' : 'opacity-70 scale-95'}`}
               >
+                <div className="relative mb-1">
                 <div className={`w-16 h-16 rounded-full overflow-hidden border-2 mb-1 relative bg-zinc-900 ${isSelected ? 'border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.4)]' : 'border-zinc-700'}`}>
                   {face.url && face.box ? (
                     <img
@@ -69,6 +70,15 @@ export default function FaceBar({ clusters, selectedClusterId, onSelectCluster, 
                     </div>
                   )}
                 </div>
+
+                {face.hero_score > 0 && (
+                <div className="absolute -top-1 -right-1 bg-yellow-400 text-black text-[9px] font-black px-1.5 py-0.5 rounded-full z-30 shadow-[0_2px_5px_rgba(0,0,0,0.5)] border border-black">
+                {face.hero_score.toFixed(1)}
+                </div>
+                )}
+              </div>
+
+
                 <div className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-tight transition-all ${isSelected ? 'bg-yellow-400 text-black scale-105' : 'bg-zinc-800 text-zinc-400'}`}>
                   {isSelected ? 'VIEWING' : `${face.count || 0} PHOTOS`}
                 </div>

@@ -1,0 +1,103 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.cameras (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  event_id uuid,
+  serial_number text NOT NULL,
+  status text DEFAULT 'active'::text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT cameras_pkey PRIMARY KEY (id),
+  CONSTRAINT cameras_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id)
+);
+CREATE TABLE public.event_cameras (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  event_id uuid NOT NULL,
+  serial_number text NOT NULL,
+  status text DEFAULT 'active'::text,
+  last_seen timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  user_id uuid,
+  CONSTRAINT event_cameras_pkey PRIMARY KEY (id),
+  CONSTRAINT event_cameras_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id),
+  CONSTRAINT fk_camera_photographer FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.event_members (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  event_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  role text DEFAULT 'member'::text,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT event_members_pkey PRIMARY KEY (id),
+  CONSTRAINT event_members_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id),
+  CONSTRAINT event_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.events (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  owner_id uuid NOT NULL,
+  title text NOT NULL,
+  start_time timestamp with time zone,
+  max_cameras integer DEFAULT 1,
+  ai_beauty_enabled boolean DEFAULT false,
+  status text DEFAULT 'active'::text,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  storage_days integer DEFAULT 3,
+  CONSTRAINT events_pkey PRIMARY KEY (id),
+  CONSTRAINT events_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.face_clusters (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  event_id uuid,
+  aws_face_id text UNIQUE,
+  latest_photo_id uuid,
+  updated_at timestamp with time zone DEFAULT now(),
+  hero_score double precision DEFAULT 0,
+  is_manual_locked boolean DEFAULT false,
+  CONSTRAINT face_clusters_pkey PRIMARY KEY (id),
+  CONSTRAINT face_clusters_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id),
+  CONSTRAINT fk_latest_photo FOREIGN KEY (latest_photo_id) REFERENCES public.photos(id)
+);
+CREATE TABLE public.photo_faces (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  photo_id uuid,
+  cluster_id uuid,
+  face_id text,
+  bounding_box jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT photo_faces_pkey PRIMARY KEY (id),
+  CONSTRAINT photo_faces_photo_id_fkey FOREIGN KEY (photo_id) REFERENCES public.photos(id),
+  CONSTRAINT photo_faces_cluster_id_fkey FOREIGN KEY (cluster_id) REFERENCES public.face_clusters(id)
+);
+CREATE TABLE public.photos (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  event_id uuid NOT NULL,
+  url_raw text NOT NULL,
+  url_thumb text NOT NULL,
+  taken_at timestamp with time zone,
+  uploaded_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  created_at timestamp with time zone DEFAULT now(),
+  camera_serial text,
+  CONSTRAINT photos_pkey PRIMARY KEY (id),
+  CONSTRAINT photos_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id)
+);
+CREATE TABLE public.users (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  ftp_user text NOT NULL UNIQUE,
+  ftp_pass text NOT NULL,
+  current_event_id uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  full_name text,
+  phone_number text,
+  avatar_url text,
+  wallet_balance integer DEFAULT 0,
+  CONSTRAINT users_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.wallet_transactions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  amount integer NOT NULL,
+  type text NOT NULL,
+  description text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT wallet_transactions_pkey PRIMARY KEY (id),
+  CONSTRAINT wallet_transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
