@@ -1,46 +1,46 @@
-import { X, Camera, Clock, Download, Briefcase, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-import { useEffect, useCallback, useState } from 'react';
+mport { X, Camera, Clock, Download, Briefcase, Loader2 } from 'lucide-react'; // ✅ ลบ ChevronLeft, ChevronRight
+import { useEffect, useCallback, useState, useRef } from 'react';
 
 export default function PhotoModal({ photo, allPhotos, onClose, onPhotoChange, eventOwner }) {
   const [isDownloading, setIsDownloading] = useState(false);
+  const touchStart = useRef(null);
+  const touchEnd = useRef(null);
 
-  // 1. ย้ายฟังก์ชันจัดรูปแบบวันที่ไว้ด้านบน
-  const formatDateTimeFull = (dateString) => {
-    if (!dateString) return { date: '', time: '' };
-    const date = new Date(dateString);
-    return {
-      date: date.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
-      time: date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'
-    };
-  };
+  // ระยะขั้นต่ำของการปัดที่ถือว่าเป็นการเปลี่ยนรูป (หน่วยเป็น Pixel)
+  const minSwipeDistance = 50;
 
-  // 2. คำนวณ Index แบบปลอดภัย (ย้ายขึ้นมา)
-  const currentIndex = (allPhotos && photo) 
-    ? allPhotos.findIndex(p => p.id === photo.id) 
-    : -1;
-  
-  // 3. ย้าย Hooks ทั้งหมดขึ้นมาไว้ก่อน Early Return ✅
-  const handlePrev = useCallback((e) => {
-    e?.stopPropagation();
+  // ... (formatDateTimeFull และ currentIndex คงเดิม) ...
+
+  const handlePrev = useCallback(() => {
     if (currentIndex > 0) onPhotoChange(allPhotos[currentIndex - 1]);
   }, [currentIndex, allPhotos, onPhotoChange]);
 
-  const handleNext = useCallback((e) => {
-    e?.stopPropagation();
-    if (currentIndex !== -1 && currentIndex < allPhotos.length - 1) {
-      onPhotoChange(allPhotos[currentIndex + 1]);
-    }
+  const handleNext = useCallback(() => {
+    if (currentIndex < allPhotos.length - 1) onPhotoChange(allPhotos[currentIndex + 1]);
   }, [currentIndex, allPhotos, onPhotoChange]);
 
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'ArrowLeft') handlePrev();
-      if (e.key === 'ArrowRight') handleNext();
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handlePrev, handleNext, onClose]);
+  // --- LOGIC: SWIPE DETECTION ---
+  const onTouchStart = (e) => {
+    touchEnd.current = null;
+    touchStart.current = e.targetTouches[0].clientX;
+  };
+
+  const onTouchMove = (e) => {
+    touchEnd.current = e.targetTouches[0].clientX;
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart.current || !touchEnd.current) return;
+    const distance = touchStart.current - touchEnd.current;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) {
+      handleNext(); // ปัดซ้าย ไปรูปถัดไป
+    } else if (isRightSwipe) {
+      handlePrev(); // ปัดขวา ไปรูปก่อนหน้า
+    }
+  };
 
   // 4. บรรทัด Early Return ต้องอยู่หลัง Hooks เสมอ ✅
   if (!photo || !allPhotos) return null;
@@ -99,7 +99,7 @@ export default function PhotoModal({ photo, allPhotos, onClose, onPhotoChange, e
 
         {/* Photo Display */}
         <div className="bg-white p-1 shadow-inner rounded-lg border border-zinc-200">
-          <img src={photo.url_raw} alt="Full View" className="w-full h-auto max-h-[60vh] object-contain mx-auto rounded" />
+          <img src={photo.url_raw} alt="Full View" className="w-full h-auto max-h-[60vh] object-contain mx-auto rounded" draggable="false" />
         </div>
 
         {/* Info Area */}
