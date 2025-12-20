@@ -13,9 +13,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Vetchaphan.com",
-  description: "Vetchaphan Photo Gallery",
+  title: "ROOPLIFE | AI FACE GRID", // เปลี่ยนข้อความ title ตรงนี้
+  description: "AI Face Grid Photo Gallery", // เปลี่ยนคำบรรยาย (ถ้าต้องการ)
 };
+
 
 export default function RootLayout({
   children,
