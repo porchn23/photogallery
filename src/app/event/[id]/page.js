@@ -143,30 +143,58 @@ export default function EventGallery() {
     
     if (mapping) setPhotoFaces(mapping);
 
-    // 4. ดึง Cluster (คน) ที่ปรากฏใน Event นี้
-    const { data: faces } = await supabase
-      .from('face_clusters')
-      .select('id, latest_photo_id, hero_score, photos:latest_photo_id(url_thumb)')
-      .eq('event_id', eventId)
-      .order('updated_at', { ascending: false });
+    // ✅ 4.1: หาว่ามี Cluster ID (คน) คนไหนบ้างที่อยู่ในรูปของงานนี้
+    // (เราใช้ Set เพื่อตัด ID ซ้ำออก ให้เหลือแค่ ID ที่ไม่ซ้ำ)
+    const activeClusterIds = [...new Set(mapping.map(m => m.cluster_id))];
 
-    if (faces && mapping) {
-      const clusterList = faces.map(f => {
-        // หา bounding box จากรูปภาพล่าสุดของคนนั้น
-        const m = mapping.find(mi => mi.cluster_id === f.id && mi.photo_id === f.latest_photo_id);
-        return {
-          id: f.id,
-          url: f.photos?.url_thumb,
-          box: m?.bounding_box,
-          count: mapping.filter(mi => mi.cluster_id === f.id).length,
-          hero_score: f.hero_score || 0 // ✅ ส่ง hero_score ไปยัง Component
-        };
-      });
-      setClusters(clusterList);
+    if (activeClusterIds.length === 0) {
+       setClusters([]); // ถ้าไม่มีคนเลย ให้เคลียร์ค่า
+    } else {
+       // ✅ 4.2: ดึงข้อมูล Cluster ตาม ID ที่เราหาเจอในงานนี้ (ไม่สนใจว่า event_id ใน DB คืออะไร)
+       const { data: faces } = await supabase
+        .from('face_clusters')
+        .select('id, latest_photo_id, hero_score, photos:latest_photo_id(url_thumb)')
+        .in('id', activeClusterIds)  // <--- ⭐ เปลี่ยนจาก .eq('event_id', eventId) เป็น .in()
+        .order('updated_at', { ascending: false });
+
+       if (faces && mapping) {
+        const clusterList = faces.map(f => {
+          // ✅ 4.3: Logic เช็คว่ารูปปก (latest_photo) อยู่ในงานนี้ไหม?
+          // ถ้าไม่อยู่ (เป็นรูปจากงานเก่า) ให้หารูปใหม่ในงานนี้มาโชว์แทน
+          const isPhotoInEvent = photoIds.includes(f.latest_photo_id);
+          
+          let displayUrl = f.photos?.url_thumb;
+          let targetPhotoId = f.latest_photo_id;
+
+          if (!isPhotoInEvent) {
+             // หารูปแรกของคนนี้ ในงานนี้ มาทำปกแทน
+             const firstFaceInEvent = mapping.find(m => m.cluster_id === f.id);
+             if (firstFaceInEvent) {
+                const photoData = photos.find(p => p.id === firstFaceInEvent.photo_id);
+                if (photoData) {
+                   displayUrl = photoData.url_thumb;
+                   targetPhotoId = photoData.id;
+                }
+             }
+          }
+
+          // หา bounding box ให้ตรงกับรูปปกที่เราเลือกมาโชว์
+          const m = mapping.find(mi => mi.cluster_id === f.id && mi.photo_id === targetPhotoId);
+
+          return {
+            id: f.id,
+            url: displayUrl,
+            box: m?.bounding_box,
+            count: mapping.filter(mi => mi.cluster_id === f.id).length,
+            hero_score: f.hero_score || 0 
+          };
+        });
+        setClusters(clusterList);
+      }
     }
+    
     setLoading(false);
   }
-
 
   return (
     <div className="fixed inset-0 bg-black text-white flex flex-col font-sans overflow-hidden">

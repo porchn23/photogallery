@@ -3,23 +3,31 @@
 
 CREATE TABLE public.cameras (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  event_id uuid,
   serial_number text NOT NULL,
   status text DEFAULT 'active'::text,
   created_at timestamp with time zone DEFAULT now(),
+  owner_id uuid,
+  ftp_user text DEFAULT (chr((((97)::double precision + floor((random() * (26)::double precision))))::integer) || (nextval('camera_ftp_seq'::regclass))::text) UNIQUE,
+  ftp_pass text DEFAULT (floor(((random() * (((999999 - 100000) + 1))::double precision) + (100000)::double precision)))::text,
+  ftp_url text DEFAULT 'ftp.rooplife.com'::text,
+  ftp_port integer DEFAULT 21,
+  nickname text,
+  brand text,
+  model text,
   CONSTRAINT cameras_pkey PRIMARY KEY (id),
-  CONSTRAINT cameras_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id)
+  CONSTRAINT cameras_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.event_cameras (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   event_id uuid NOT NULL,
-  serial_number text NOT NULL,
   status text DEFAULT 'active'::text,
   last_seen timestamp with time zone DEFAULT timezone('utc'::text, now()),
   user_id uuid,
+  camera_id uuid NOT NULL,
   CONSTRAINT event_cameras_pkey PRIMARY KEY (id),
   CONSTRAINT event_cameras_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id),
-  CONSTRAINT fk_camera_photographer FOREIGN KEY (user_id) REFERENCES public.users(id)
+  CONSTRAINT fk_camera_photographer FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT fk_event_cameras_camera FOREIGN KEY (camera_id) REFERENCES public.cameras(id)
 );
 CREATE TABLE public.event_members (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -41,13 +49,14 @@ CREATE TABLE public.events (
   status text DEFAULT 'active'::text,
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   storage_days integer DEFAULT 3,
+  join_code text UNIQUE,
   CONSTRAINT events_pkey PRIMARY KEY (id),
   CONSTRAINT events_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.face_clusters (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  event_id uuid,
-  aws_face_id text UNIQUE,
+  event_id uuid NOT NULL,
+  aws_face_id text,
   latest_photo_id uuid,
   updated_at timestamp with time zone DEFAULT now(),
   hero_score double precision DEFAULT 0,
@@ -63,6 +72,7 @@ CREATE TABLE public.photo_faces (
   face_id text,
   bounding_box jsonb,
   created_at timestamp with time zone DEFAULT now(),
+  quality_score double precision DEFAULT 0,
   CONSTRAINT photo_faces_pkey PRIMARY KEY (id),
   CONSTRAINT photo_faces_photo_id_fkey FOREIGN KEY (photo_id) REFERENCES public.photos(id),
   CONSTRAINT photo_faces_cluster_id_fkey FOREIGN KEY (cluster_id) REFERENCES public.face_clusters(id)
@@ -88,7 +98,7 @@ CREATE TABLE public.users (
   full_name text,
   phone_number text,
   avatar_url text,
-  wallet_balance integer DEFAULT 0,
+  wallet_balance integer DEFAULT 0 CHECK (wallet_balance >= 0),
   CONSTRAINT users_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.wallet_transactions (
