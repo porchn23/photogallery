@@ -4,6 +4,8 @@ import { supabase } from '@/src/lib/supabase';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Header from '@/src/components/Header';
+// แก้ไขบรรทัดการ import เดิมให้ครอบคลุมไอคอนที่ใช้ครับ
+import { Plus, Camera, Users, Wallet } from 'lucide-react';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -15,6 +17,8 @@ export default function Dashboard() {
   const [isCreating, setIsCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [error, setError] = useState('');
+  const [isJoining, setIsJoining] = useState(false);
+  const [joinCodeInput, setJoinCodeInput] = useState('');
 
   // --- Initial Fetch ---
   useEffect(() => {
@@ -151,6 +155,25 @@ async function fetchUserData() {
     }
   };
 
+  const handleJoinEvent = async (e) => {
+    e.preventDefault();
+    
+    // 1. ค้นหา Event จาก Join Code
+    const { data: eventData, error: findError } = await supabase
+      .from('events')
+      .select('id')
+      .eq('join_code', joinCodeInput.toUpperCase())
+      .single();
+  
+    if (findError || !eventData) {
+      alert('ไม่พบอีเวนต์จากรหัสนี้');
+      return;
+    }
+  
+    // 2. เพิ่มชื่อเราเข้าไปใน Event Members (ถ้าต้องการเก็บประวัติคนช่วยงาน)
+    // หรือในที่นี้ เราสามารถพาเขาไปหน้า Command Center ได้เลย
+    router.push(`/dashboard/event/${eventData.id}`);
+  };
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black text-black dark:text-white p-6">
@@ -159,26 +182,44 @@ async function fetchUserData() {
       <main className="p-6">
 
       {/* Main Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        
-        <button 
-          onClick={() => setIsCreating(true)}
-          className="flex flex-col items-center justify-center p-8 bg-zinc-950 text-white rounded-3xl hover:bg-zinc-800 transition-all shadow-xl"
-        >
-          <span className="text-3xl mb-2">➕</span>
-          <span className="font-semibold text-lg">Create New Event</span>
-          <span className="text-zinc-400 text-xs mt-1">Cost: 100 THB / Event</span>
-        </button>
+<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+  {/* Card 1: Create Event */}
+  <button 
+    onClick={() => setIsCreating(true)}
+    className="group flex flex-col items-center justify-center p-8 bg-zinc-950 dark:bg-zinc-100 text-white dark:text-black rounded-[2.5rem] hover:scale-[1.02] transition-all shadow-xl shadow-zinc-200 dark:shadow-none"
+  >
+    <div className="w-14 h-14 bg-white/10 dark:bg-black/5 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+      <Plus size={28} />
+    </div>
+    <span className="font-black text-lg tracking-tight">Create Event</span>
+    <span className="text-zinc-400 dark:text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1">100 THB / Job</span>
+  </button>
 
-        <Link href="/dashboard/garage" className="flex flex-col items-center justify-center p-8 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl hover:border-zinc-400 transition-all shadow-sm">
-          <span className="text-3xl mb-2">🎒</span>
-          <span className="font-semibold text-lg">My Garage</span>
-          <span className="text-zinc-500 text-xs mt-1">Manage your cameras</span>
-        </Link>
+  {/* Card 2: My Garage */}
+  <Link 
+    href="/dashboard/garage" 
+    className="group flex flex-col items-center justify-center p-8 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] hover:scale-[1.02] transition-all shadow-sm hover:shadow-md"
+  >
+    <div className="w-14 h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-zinc-400 group-hover:text-blue-500 transition-colors mb-4 group-hover:scale-110 transition-transform">
+      <Camera size={28} strokeWidth={1.5} />
+    </div>
+    <span className="font-black text-lg tracking-tight">My Garage</span>
+    <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1">Manage Equipment</span>
+  </Link>
 
+  {/* Card 3: Join with Code (ปรับใหม่ให้ชัดเจน) */}
+  <button 
+    onClick={() => setIsJoining(true)}
+    className="group flex flex-col items-center justify-center p-8 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] hover:scale-[1.02] transition-all shadow-sm hover:shadow-md"
+  >
+    <div className="w-14 h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-zinc-400 group-hover:text-purple-500 transition-colors mb-4 group-hover:scale-110 transition-transform">
+      <Users size={28} strokeWidth={1.5} />
+    </div>
+    <span className="font-black text-lg tracking-tight">Join Event</span>
+    <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1">Join with 6-Digit Code</span>
+  </button>
+</div>
 
-        
-      </div>
 
       {/* Create Event Modal */}
       {isCreating && (
@@ -227,7 +268,14 @@ async function fetchUserData() {
       <section>
         <div className="flex justify-between items-end mb-4">
           <h2 className="text-xl font-bold">My Events</h2>
-          <button className="text-blue-500 text-sm font-medium">Join with Code</button>
+
+            <button 
+            onClick={() => setIsJoining(true)} // เพิ่มบรรทัดนี้
+            className="text-blue-500 text-sm font-medium"
+            >
+            Join with Code
+            </button>
+
         </div>
 
         {loading ? (
@@ -256,7 +304,36 @@ async function fetchUserData() {
         )}
       </section>
       </main>
+
+{/* Modal สำหรับกรอก Join Code */}
+{isJoining && (
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 text-black dark:text-white">
+    <div className="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl border border-zinc-100 dark:border-zinc-800">
+      <h2 className="text-2xl font-black mb-2 tracking-tight">Join Event</h2>
+      <p className="text-zinc-500 text-sm mb-8 font-medium">กรอกรหัส 6 หลักเพื่อเข้าร่วมบริหารจัดการงาน</p>
+      
+      <form onSubmit={handleJoinEvent}>
+        <input 
+          autoFocus
+          required
+          maxLength={6}
+          type="text" 
+          value={joinCodeInput}
+          onChange={(e) => setJoinCodeInput(e.target.value.toUpperCase())}
+          className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-2xl p-5 text-center text-3xl font-black tracking-[0.5em] focus:ring-2 ring-blue-500 transition-all mb-8 uppercase"
+          placeholder="ABCDEF"
+        />
+        <div className="flex gap-3">
+          <button type="button" onClick={() => setIsJoining(false)} className="flex-1 py-4 text-zinc-400 hover:text-zinc-600 font-bold uppercase text-[10px] tracking-widest transition-colors">Cancel</button>
+          <button type="submit" className="flex-2 px-8 py-4 bg-blue-600 text-white font-black rounded-2xl shadow-lg shadow-blue-200 dark:shadow-none uppercase text-xs tracking-widest hover:bg-blue-700 transition-colors">Join Now</button>
+        </div>
+      </form>
     </div>
+  </div>
+)}      
+    </div>
+
+    
 
   );
 }
