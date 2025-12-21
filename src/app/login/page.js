@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/src/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Loader2, ShieldCheck, Lock } from 'lucide-react';
+import Link from 'next/link'; // ✅ เพิ่ม Import
+import { Loader2, ShieldCheck, Lock, ExternalLink } from 'lucide-react'; // ✅ เพิ่มไอคอน ExternalLink
 
 export default function LoginPage() {
   const router = useRouter();
@@ -91,14 +92,27 @@ export default function LoginPage() {
           </div>
 
           {/* Footer / Trust Signals */}
-          <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex flex-col items-center gap-3">
-            <div className="flex items-center gap-2 text-zinc-400">
-              <ShieldCheck size={14} className="text-green-500" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Secure Cloud Authentication</span>
+          <div className="pt-6 border-t border-zinc-100 dark:border-zinc-800 space-y-6">
+            <div className="flex flex-col items-center gap-3">
+              <div className="flex items-center gap-2 text-zinc-400">
+                <ShieldCheck size={14} className="text-green-500" />
+                <span className="text-[10px] font-bold uppercase tracking-widest">Secure Cloud Authentication</span>
+              </div>
+              <p className="text-zinc-400 text-[9px] uppercase tracking-tighter leading-relaxed max-w-[200px]">
+                Platform for Professional Photographers & Digital Asset Management
+              </p>
             </div>
-            <p className="text-zinc-400 text-[9px] uppercase tracking-tighter leading-relaxed max-w-[200px]">
-              Platform for Professional Photographers & Digital Asset Management
-            </p>
+
+            {/* ✅ ลิงก์นโยบายและความเป็นส่วนตัวที่ดูน่าเชื่อถือ */}
+            <div className="pt-2">
+              <Link 
+                href="/policy" 
+                className="inline-flex items-center gap-1.5 text-[10px] font-bold text-zinc-400 hover:text-blue-500 dark:text-zinc-500 dark:hover:text-blue-400 uppercase tracking-widest transition-colors group"
+              >
+                <span>Privacy Policy & Terms</span>
+                <ExternalLink size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+              </Link>
+            </div>
           </div>
         </div>
 
