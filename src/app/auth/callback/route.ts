@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
@@ -29,7 +30,8 @@ export async function GET(request: Request) {
         },
       }
     )
-
+// ใน src/app/auth/callback/route.ts
+    const next = searchParams.get('next') ?? '/dashboard' // ตรวจสอบจุดนี้
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
       return NextResponse.redirect(`${origin}${next}`)
