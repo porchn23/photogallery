@@ -1,8 +1,19 @@
-import { QrCode, Wallet } from 'lucide-react'; // เพิ่ม Wallet icon
+import { QrCode, Wallet, LogOut, User } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { supabase } from '@/src/lib/supabase';
+import { useRouter } from 'next/navigation';
 
-export default function Header({ onQRClick, balance }) {
+export default function Header({ onQRClick, balance, user }) {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    if (confirm('ยืนยันออกจากระบบ?')) {
+      await supabase.auth.signOut();
+      router.push('/login');
+    }
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-zinc-200/50 dark:border-zinc-800/50">
       <div className="px-4 md:px-6 h-18 md:h-24 flex items-center justify-between">
@@ -20,34 +31,65 @@ export default function Header({ onQRClick, balance }) {
             <h1 className="text-base md:text-xl font-black tracking-tight text-zinc-900 dark:text-zinc-100 leading-none">
               ROOPLIFE
             </h1>
-            <p className="text-[9px] md:text-[11px] font-bold text-zinc-400 tracking-[0.25em] md:tracking-[0.4em] mt-1.5 uppercase">
+            <p className="text-[9px] md:text-[11px] font-bold text-zinc-400 tracking-[0.25em] md:tracking-[0.4em] mt-1.5 uppercase leading-none">
               Command Center
             </p>
           </div>
         </Link>
 
-        <div className="flex items-center gap-3 md:gap-6">
-          {/* ส่วนแสดง Wallet Balance ใหม่ใน Header */}
-          {balance !== undefined && (
-    <Link href="/dashboard/wallet" className="group/wallet flex items-center gap-2 md:gap-3 bg-zinc-100 dark:bg-zinc-800/50 px-3 md:px-4 py-1.5 md:py-2 rounded-2xl border border-zinc-200/50 dark:border-zinc-800/50 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all">
-    <div className="hidden sm:block text-right">
-      <p className="text-[8px] font-bold text-zinc-400 uppercase tracking-widest">Balance</p>
-      <p className="text-sm md:text-base font-black text-green-600 dark:text-green-500 leading-none">
-        ฿{balance.toLocaleString()}
-      </p>
-    </div>
-    <div className="w-8 h-8 md:w-10 md:h-10 bg-white dark:bg-zinc-800 rounded-xl flex items-center justify-center text-green-600 shadow-sm group-hover/wallet:scale-110 transition-transform">
-      <Wallet size={16} className="md:w-5 md:h-5" />
-    </div>
-  </Link>
-          )}
+        <div className="flex items-center gap-2 md:gap-4">
+          {/* User Profile & Wallet Group */}
+          <div className="flex items-center gap-2 bg-zinc-50 dark:bg-zinc-900/50 p-1.5 md:p-2 rounded-[1.5rem] border border-zinc-100 dark:border-zinc-800 shadow-sm">
+            {/* Wallet Section */}
+            {balance !== undefined && (
+              <Link href="/dashboard/wallet" className="flex items-center gap-2 px-3 py-1.5 hover:bg-white dark:hover:bg-zinc-800 rounded-xl transition-all border border-transparent hover:border-zinc-100 dark:hover:border-zinc-700">
+                <div className="text-right hidden xs:block">
+                  <p className="text-[7px] font-bold text-zinc-400 uppercase tracking-widest leading-none mb-1">Balance</p>
+                  <p className="text-xs md:text-sm font-black text-green-600 dark:text-green-500 leading-none">
+                    ฿{balance.toLocaleString()}
+                  </p>
+                </div>
+                <div className="w-8 h-8 bg-green-50 dark:bg-green-900/20 rounded-lg flex items-center justify-center text-green-600">
+                  <Wallet size={16} />
+                </div>
+              </Link>
+            )}
+
+            <div className="h-6 w-[1px] bg-zinc-200 dark:bg-zinc-800 mx-1" />
+
+            {/* Profile Section */}
+            <div className="flex items-center gap-2 px-2">
+              <div className="text-right hidden sm:block">
+                <p className="text-[7px] font-bold text-zinc-400 uppercase tracking-widest leading-none mb-1">Account</p>
+                <p className="text-xs font-bold truncate max-w-[80px]">{user?.full_name?.split(' ')[0] || 'User'}</p>
+              </div>
+              <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 flex items-center justify-center">
+                {user?.avatar_url ? (
+                  <img 
+                    src={user.avatar_url} 
+                    referrerPolicy="no-referrer" 
+                    className="w-full h-full object-cover" 
+                    alt="avatar" 
+                  />
+                ) : (
+                  <User size={16} className="text-zinc-400" />
+                )}
+              </div>
+              <button 
+                onClick={handleLogout}
+                className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-all"
+              >
+                <LogOut size={16} />
+              </button>
+            </div>
+          </div>
 
           {onQRClick && (
             <button
               onClick={onQRClick}
               className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800/50 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-full text-zinc-600 dark:text-zinc-300 transition-all"
             >
-              <QrCode size={20} className="md:w-6 md:h-6" strokeWidth={1.5} />
+              <QrCode size={20} />
             </button>
           )}
         </div>

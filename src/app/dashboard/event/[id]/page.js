@@ -173,7 +173,7 @@ export default function EventManagement() {
 
   return (
     <div className="min-h-screen bg-[#fafafa] dark:bg-[#09090b] text-zinc-900 dark:text-zinc-100 font-sans pb-24">
-      <Header balance={user?.wallet_balance} />
+      <Header balance={user?.wallet_balance} user={user} />
       
       <main className="max-w-7xl mx-auto px-6 pt-12 space-y-10">
         

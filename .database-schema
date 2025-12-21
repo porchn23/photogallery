@@ -91,11 +91,8 @@ CREATE TABLE public.photos (
 );
 CREATE TABLE public.users (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  ftp_user text NOT NULL UNIQUE,
-  ftp_pass text NOT NULL,
   current_event_id uuid,
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
-  full_name text,
   phone_number text,
   avatar_url text,
   wallet_balance integer DEFAULT 0 CHECK (wallet_balance >= 0),

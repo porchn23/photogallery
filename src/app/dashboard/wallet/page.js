@@ -51,7 +51,7 @@ export default function WalletPage() {
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black">
-      <Header balance={user?.wallet_balance} />
+      <Header balance={user?.wallet_balance} user={user} />
       
       <main className="max-w-4xl mx-auto p-6 md:p-10">
         {/* --- Card: Current Balance --- */}

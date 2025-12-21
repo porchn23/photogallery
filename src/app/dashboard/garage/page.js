@@ -104,7 +104,7 @@ async function fetchInitialData() {
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black text-black dark:text-white p-6">
-        <Header balance={user?.wallet_balance} />
+        <Header balance={user?.wallet_balance} user={user} />
     <main className="p-6">
       {/* Add Camera Button */}
       <button 
