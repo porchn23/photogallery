@@ -37,51 +37,74 @@ export default function EventManagement() {
     return () => supabase.removeChannel(channel);
   }, [eventId]);
 
-  async function fetchData() {
+// ... existing code ...
+async function fetchData() {
     try {
+      // 1. ตรวจสอบ User ที่ล็อคอินอยู่จริง
       const { data: { user: authUser } } = await supabase.auth.getUser();
-      let targetId = authUser?.id;
-
-      if (!targetId) {
-        const { data: firstUser } = await supabase.from('users').select('*').limit(1).single();
-        targetId = firstUser?.id;
-        if (firstUser) setUser(firstUser);
+      
+      if (!authUser) {
+        router.push('/login');
+        return;
       }
 
-      if (targetId) {
-        let realId = eventId;
-        if (eventId.length < 30) {
-          const { data: eventByCode } = await supabase.from('events').select('id').eq('join_code', eventId).single();
-          if (eventByCode) realId = eventByCode.id;
-          else { alert('ไม่พบอีเวนต์'); return; }
+      // 2. แปลง Join Code เป็น UUID (ถ้าจำเป็น)
+      let realId = eventId;
+      if (eventId.length < 30) {
+        const { data: eventByCode } = await supabase.from('events').select('id').eq('join_code', eventId).single();
+        if (eventByCode) realId = eventByCode.id;
+        else { 
+          alert('ไม่พบอีเวนต์นี้ในระบบ'); 
+          router.push('/dashboard');
+          return; 
         }
-
-        const [eventRes, userRes, garageRes, activeCamsRes, historyCamsRes, membersRes] = await Promise.all([
-          supabase.from('events').select('*').eq('id', realId).single(),
-          supabase.from('users').select('*').eq('id', targetId).single(),
-          supabase.from('cameras').select('*').eq('owner_id', targetId),
-          supabase.from('event_cameras').select('*, cameras(*), users(*)').eq('event_id', realId).eq('status', 'active'),
-          supabase.from('event_cameras').select('*, cameras(*), users(*)').eq('event_id', realId).neq('status', 'active').order('created_at', { ascending: false }).limit(4),
-          supabase.from('event_members').select('*, users(*)').eq('event_id', realId)
-        ]);
-
-        setEvent(eventRes.data);
-        setUser(userRes.data);
-        setMyGarage(garageRes.data || []);
-        setActiveCameras(activeCamsRes.data || []);
-        setCameraHistory(historyCamsRes.data || []);
-        setEventMembers(membersRes.data || []);
-        
-        setEditTitle(eventRes.data?.title);
-        setEditStartTime(eventRes.data?.start_time?.substring(0, 16));
       }
+
+      // 3. ดึงข้อมูล Event และสมาชิกเพื่อเช็คสิทธิ์
+      const [eventRes, membersRes] = await Promise.all([
+        supabase.from('events').select('*').eq('id', realId).single(),
+        supabase.from('event_members').select('*, users(*)').eq('event_id', realId)
+      ]);
+
+      const eventData = eventRes.data;
+      const membersData = membersRes.data || [];
+
+      // 🛑 [SECURITY CHECK] ตรวจสอบสิทธิ์การเข้าถึง
+      const isOwner = eventData?.owner_id === authUser.id;
+      const isMember = membersData.some(m => m.user_id === authUser.id);
+
+      if (!eventData || (!isOwner && !isMember)) {
+        alert('คุณไม่มีสิทธิ์เข้าถึงการจัดการอีเวนต์นี้');
+        router.push('/dashboard');
+        return;
+      }
+
+      // 4. ถ้าผ่านการเช็คสิทธิ์แล้ว ให้ดึงข้อมูลที่เหลือ
+      const [userRes, garageRes, activeCamsRes, historyCamsRes] = await Promise.all([
+        supabase.from('users').select('*').eq('id', authUser.id).single(),
+        supabase.from('cameras').select('*').eq('owner_id', authUser.id),
+        supabase.from('event_cameras').select('*, cameras(*), users(*)').eq('event_id', realId).eq('status', 'active'),
+        supabase.from('event_cameras').select('*, cameras(*), users(*)').eq('event_id', realId).neq('status', 'active').order('created_at', { ascending: false }).limit(4)
+      ]);
+
+      setEvent(eventData);
+      setEventMembers(membersData);
+      setUser(userRes.data);
+      setMyGarage(garageRes.data || []);
+      setActiveCameras(activeCamsRes.data || []);
+      setCameraHistory(historyCamsRes.data || []);
+      
+      setEditTitle(eventData?.title);
+      setEditStartTime(eventData?.start_time?.substring(0, 16));
+
     } catch (err) {
-      console.error(err);
+      console.error('Fetch Data Error:', err);
+      router.push('/dashboard');
     } finally {
       setLoading(false);
     }
   }
-
+// ... existing code ...
   // --- Helpers ---
   const getEventDates = () => {
     if (!event?.created_at) return { start: null, expiry: null, isExpired: false, daysRemaining: 0 };
