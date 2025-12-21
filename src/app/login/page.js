@@ -41,7 +41,7 @@ export default function LoginPage() {
           <div className="relative w-28 h-28 mx-auto rounded-[2.5rem] overflow-hidden shadow-sm bg-white p-2 border border-zinc-50 dark:border-zinc-800">
             <Image src="/rooplife-logo/android-chrome-192x192.png" alt="Logo" fill className="object-contain p-1.5" priority />
           </div>
-          <h1 className="text-4xl font-medium tracking-tighter">ROOPLIFE</h1>
+          <h1 className="text-4xl font-medium tracking-tighter">ROOPLIFE 01</h1>
         </div>
 
         <button 
