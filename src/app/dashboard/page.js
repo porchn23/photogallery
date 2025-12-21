@@ -1,215 +1,299 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/src/lib/supabase';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Header from '@/src/components/Header';
-import { 
-  Wallet, 
-  ArrowDownLeft, 
-  ArrowUpRight, 
-  Plus, 
-  CheckCircle2, 
-  X, 
-  QrCode, 
-  Loader2, 
-  ShieldCheck 
-} from 'lucide-react';
+import { Plus, Camera, Users, Calendar, Zap, Copy, Loader2 } from 'lucide-react';
 
-export default function WalletPage() {
+export default function Dashboard() {
+  const router = useRouter();
+  
+  // --- States ---
   const [user, setUser] = useState(null);
-  const [transactions, setTransactions] = useState([]);
+  const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isTopUpOpen, setIsTopUpOpen] = useState(false);
-  const [selectedAmount, setSelectedAmount] = useState(null);
-  const [qrImage, setQrImage] = useState(null);
-  const [step, setStep] = useState(1); // 1: Select Amount, 2: Show QR/Processing
+  const [isCreating, setIsCreating] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
+  
+  // Form States
+  const [newTitle, setNewTitle] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [joinCodeInput, setJoinCodeInput] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchWalletData();
+    fetchInitialData();
   }, []);
 
-  async function fetchWalletData() {
+  async function fetchInitialData() {
+    setLoading(true);
     try {
+      // 1. ตรวจสอบ User ที่ล็อคอินอยู่
       const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (authUser) {
-        const [userRes, transRes] = await Promise.all([
-          supabase.from('users').select('*').eq('id', authUser.id).single(),
-          supabase.from('wallet_transactions')
-            .select('*')
-            .eq('user_id', authUser.id)
-            .order('created_at', { ascending: false })
-        ]);
-        setUser(userRes.data);
-        setTransactions(transRes.data || []);
+
+      if (!authUser) {
+        router.push('/login');
+        return;
+      }
+
+      // 2. ดึงข้อมูลโปรไฟล์ (รวม Wallet Balance)
+      const { data: userData } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authUser.id)
+        .single();
+
+      if (userData) {
+        setUser(userData);
+        // 3. ดึงรายการ Event ของ User นี้
+        const { data: eventData } = await supabase
+          .from('events')
+          .select('*')
+          .eq('owner_id', authUser.id)
+          .order('created_at', { ascending: false });
+        
+        setEvents(eventData || []);
       }
     } catch (err) {
-      console.error('Error fetching wallet data:', err);
+      console.error('Error fetching data:', err);
     } finally {
       setLoading(false);
     }
   }
 
-  const handleTopUpRequest = async () => {
-    try {
-      setLoading(true);
-      setStep(2); // เปลี่ยนไปหน้าแสดง QR / Loading
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    alert('คัดลอก Join Code แล้ว: ' + text);
+  };
 
-      // เรียก API ของเราที่สร้างไว้ใน src/app/api/checkout/route.ts
-      const response = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: selectedAmount,
-          userId: user.id
-        }),
+  const handleCreateEvent = async (e) => {
+    e.preventDefault();
+    setError('');
+    
+    if (!user || user.wallet_balance < 100) {
+      setError('ยอดเงินไม่พอ (ต้องการ 100 THB)');
+      return;
+    }
+
+    try {
+      const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+      // หักเงิน
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ wallet_balance: user.wallet_balance - 100 })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      // บันทึกธุรกรรม
+      await supabase.from('wallet_transactions').insert({
+        user_id: user.id,
+        amount: -100,
+        type: 'create_event',
+        description: `เปิดงานใหม่: ${newTitle}`
       });
 
-      const data = await response.json();
+      // สร้างงาน
+      const { error: eventError } = await supabase
+        .from('events')
+        .insert({
+          owner_id: user.id,
+          title: newTitle,
+          start_time: startTime,
+          join_code: joinCode,
+          max_cameras: 1,
+          storage_days: 3,
+          status: 'active'
+        });
 
-      if (data.qr_code) {
-        setQrImage(data.qr_code); // เอารูป QR จริงจาก Omise มาใส่
-      } else {
-        throw new Error(data.error || 'ไม่สามารถสร้าง QR Code ได้');
-      }
+      if (eventError) throw eventError;
+
+      setNewTitle('');
+      setStartTime('');
+      setIsCreating(false);
+      fetchInitialData(); // โหลดข้อมูลใหม่
+      
     } catch (err) {
-      alert('เกิดข้อผิดพลาด: ' + err.message);
-      setStep(1);
-    } finally {
-      setLoading(false);
+      setError('เกิดข้อผิดพลาด: ' + err.message);
     }
   };
 
-  const closeModal = () => {
-    setIsTopUpOpen(false);
-    setStep(1);
-    setSelectedAmount(null);
-    setQrImage(null);
+  const handleJoinEvent = async (e) => {
+    e.preventDefault();
+    const { data: eventData, error: findError } = await supabase
+      .from('events')
+      .select('id')
+      .eq('join_code', joinCodeInput.toUpperCase())
+      .single();
+
+    if (findError || !eventData) {
+      alert('ไม่พบอีเวนต์จากรหัสนี้');
+      return;
+    }
+    router.push(`/dashboard/event/${eventData.id}`);
   };
 
+  const getEventStatus = (startTime, storageDays) => {
+    if (!startTime) return { label: 'ยังไม่เริ่ม', color: 'text-amber-500', dot: 'bg-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/10' };
+    
+    const now = new Date();
+    const start = new Date(startTime);
+    const expiry = new Date(start.getTime() + (storageDays * 24 * 60 * 60 * 1000));
+
+    if (now < start) {
+      return { label: 'ยังไม่เริ่ม', color: 'text-amber-500', dot: 'bg-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/10' };
+    } else if (now >= start && now <= expiry) {
+      return { label: 'Active', color: 'text-green-500', dot: 'bg-green-500 animate-pulse', bg: 'bg-green-50 dark:bg-green-900/10' };
+    } else {
+      return { label: 'สิ้นสุด', color: 'text-red-500', dot: 'bg-red-500', bg: 'bg-red-50 dark:bg-red-900/10' };
+    }
+  };
+
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-[#fafafa] dark:bg-[#09090b]">
+      <Loader2 className="animate-spin text-blue-500" size={40} />
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-[#fafafa] dark:bg-[#09090b] font-sans">
+    <div className="min-h-screen bg-[#fafafa] dark:bg-[#09090b] text-black dark:text-white font-sans">
       <Header balance={user?.wallet_balance} user={user} />
       
-      <main className="max-w-4xl mx-auto p-6 md:p-12">
-        {/* --- Balance Card --- */}
-        <div className="bg-zinc-950 dark:bg-white rounded-[3rem] p-10 md:p-14 text-white dark:text-black shadow-2xl mb-12 relative overflow-hidden group border border-white/10 dark:border-black/5">
-          <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8 text-center md:text-left">
-            <div>
-              <p className="text-zinc-500 dark:text-zinc-400 text-[10px] font-black uppercase tracking-[0.3em] mb-4">Total Balance</p>
-              <h2 className="text-6xl md:text-7xl font-black tracking-tighter mb-2">
-                ฿{user?.wallet_balance?.toLocaleString() || '0'}
-              </h2>
-              <div className="flex items-center gap-2 text-green-500 font-bold text-xs justify-center md:justify-start">
-                <ShieldCheck size={14} /> System Secured
-              </div>
+      <main className="max-w-6xl mx-auto p-6 md:p-12">
+        {/* Main Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16 pt-8">
+          <button 
+            onClick={() => setIsCreating(true)}
+            className="group flex flex-col items-center justify-center p-10 bg-zinc-950 dark:bg-zinc-100 text-white dark:text-black rounded-[2.5rem] hover:scale-[1.02] transition-all shadow-xl"
+          >
+            <div className="w-14 h-14 bg-white/10 dark:bg-black/5 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <Plus size={28} />
             </div>
-            <button 
-              onClick={() => setIsTopUpOpen(true)}
-              className="px-10 py-5 bg-blue-600 text-white font-black rounded-[2rem] hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center gap-3 uppercase text-xs tracking-widest"
-            >
-              <Plus size={20} strokeWidth={3} /> Top Up
-            </button>
-          </div>
-          <Wallet className="absolute -right-12 -bottom-12 w-64 h-64 text-white/5 dark:text-black/5 rotate-12" />
+            <span className="font-medium text-lg tracking-tight text-white dark:text-black">Create Event</span>
+            <span className="text-zinc-400 dark:text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1">100 THB / Job</span>
+          </button>
+
+          <Link href="/dashboard/garage" className="group flex flex-col items-center justify-center p-10 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] hover:scale-[1.02] transition-all shadow-sm hover:shadow-md">
+            <div className="w-14 h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-zinc-400 group-hover:text-blue-500 transition-colors mb-4 group-hover:scale-110 transition-transform">
+              <Camera size={28} />
+            </div>
+            <span className="font-medium text-lg tracking-tight">My Garage</span>
+            <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1">Manage Equipment</span>
+          </Link>
+
+          <button 
+            onClick={() => setIsJoining(true)}
+            className="group flex flex-col items-center justify-center p-10 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] hover:scale-[1.02] transition-all shadow-sm hover:shadow-md"
+          >
+            <div className="w-14 h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-zinc-400 group-hover:text-purple-500 transition-colors mb-4 group-hover:scale-110 transition-transform">
+              <Users size={28} />
+            </div>
+            <span className="font-medium text-lg tracking-tight">Join Event</span>
+            <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1">Contributor Mode</span>
+          </button>
         </div>
 
-        {/* --- Activity History --- */}
+        {/* Events List */}
         <section>
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-2xl font-medium tracking-tight text-zinc-900 dark:text-zinc-100">Activity</h3>
-            <div className="h-[1px] flex-1 bg-zinc-200 dark:bg-zinc-800 mx-6" />
+          <div className="flex items-center gap-3 mb-8">
+            <h2 className="text-2xl font-medium tracking-tight">Active Projects</h2>
+            <div className="h-[1px] flex-1 bg-zinc-200 dark:bg-zinc-800" />
           </div>
 
-          <div className="space-y-3">
-            {transactions.length > 0 ? transactions.map((t) => (
-              <div key={t.id} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-6 rounded-[2rem] flex items-center justify-between shadow-sm">
-                <div className="flex items-center gap-6">
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${t.amount > 0 ? 'bg-green-50 text-green-600' : 'bg-zinc-100 text-zinc-400 dark:bg-zinc-800'}`}>
-                    {t.amount > 0 ? <ArrowDownLeft size={28} /> : <ArrowUpRight size={28} />}
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-lg tracking-tight">{t.description}</h4>
-                    <p className="text-xs text-zinc-400 font-medium">
-                      {new Date(t.created_at).toLocaleString('th-TH', { dateStyle: 'long', timeStyle: 'short' })}
-                    </p>
-                  </div>
-                </div>
-                <div className={`text-xl font-black ${t.amount > 0 ? 'text-green-600' : 'text-zinc-900 dark:text-white'}`}>
-                  {t.amount > 0 ? `+฿${t.amount.toLocaleString()}` : `-฿${Math.abs(t.amount).toLocaleString()}`}
-                </div>
-              </div>
-            )) : (
-              <div className="text-center py-20 bg-zinc-100/50 dark:bg-zinc-900/30 rounded-[3rem] border-2 border-dashed border-zinc-200 dark:border-zinc-800 text-zinc-400 font-medium italic">
-                No activity yet.
-              </div>
-            )}
-          </div>
-        </section>
+          {events.length > 0 ? (
+            <div className="grid grid-cols-1 gap-4">
+              {events.map((event) => {
+                const status = getEventStatus(event.start_time, event.storage_days || 3);
+                return (
+                  <Link key={event.id} href={`/dashboard/event/${event.id}`} className="group">
+                    <div className="p-6 md:p-8 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] flex flex-col md:flex-row justify-between items-start md:items-center hover:shadow-xl hover:border-blue-500/50 transition-all duration-300 gap-6">
+                      <div className="space-y-4">
+                        <h3 className="font-medium text-2xl md:text-3xl tracking-tight group-hover:text-blue-600 transition-colors leading-none">{event.title}</h3>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <div className="flex items-center gap-2 px-3 py-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl">
+                            <Zap size={12} className="text-blue-500" fill="currentColor" />
+                            <span className="text-[10px] font-black uppercase tracking-widest">{event.join_code}</span>
+                            <button 
+                              onClick={(e) => { e.preventDefault(); copyToClipboard(event.join_code); }}
+                              className="ml-1 p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-md transition-colors"
+                            >
+                              <Copy size={12} />
+                            </button>
+                          </div>
+                          
+                          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border border-zinc-100 dark:border-zinc-800 ${status.bg}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
+                            <span className={`text-[10px] font-black uppercase tracking-widest ${status.color}`}>
+                              {status.label}
+                            </span>
+                          </div>
 
-        {/* --- Top Up Modal --- */}
-        {isTopUpOpen && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-xl z-[100] flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-[3.5rem] p-10 shadow-2xl border border-zinc-100 dark:border-zinc-800 relative overflow-hidden">
-              <button onClick={closeModal} className="absolute top-8 right-8 text-zinc-400 hover:text-black"><X size={24} /></button>
-              
-              {step === 1 && (
-                <div className="animate-in fade-in slide-in-from-bottom-4">
-                  <h2 className="text-3xl font-bold mb-2 tracking-tight">Add Funds</h2>
-                  <p className="text-zinc-500 text-sm mb-10 font-medium italic">เลือกจำนวนเงินที่ต้องการเติม</p>
-                  <div className="grid grid-cols-2 gap-4 mb-10">
-                    {[100, 300, 500, 1000].map((amount) => (
-                      <button 
-                        key={amount}
-                        onClick={() => setSelectedAmount(amount)}
-                        className={`p-8 border-2 rounded-[2.5rem] transition-all group text-left ${selectedAmount === amount ? 'bg-blue-600 border-blue-600 text-white shadow-xl shadow-blue-500/20' : 'bg-zinc-50 dark:bg-zinc-800 border-transparent hover:border-blue-600'}`}
-                      >
-                        <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${selectedAmount === amount ? 'text-blue-100' : 'text-zinc-400'}`}>THB</p>
-                        <p className="text-3xl font-black tracking-tighter">{amount.toLocaleString()}</p>
-                      </button>
-                    ))}
-                  </div>
-                  <button 
-                    disabled={!selectedAmount || loading}
-                    onClick={handleTopUpRequest}
-                    className="w-full py-5 bg-zinc-950 dark:bg-zinc-100 text-white dark:text-black font-black rounded-3xl shadow-xl uppercase text-[10px] tracking-[0.3em] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-30"
-                  >
-                    {loading ? <Loader2 className="animate-spin mx-auto" /> : 'Get QR Code'}
-                  </button>
-                </div>
-              )}
-
-              {step === 2 && (
-                <div className="text-center animate-in zoom-in duration-300">
-                  <div className="mb-8">
-                    <h2 className="text-3xl font-bold mb-2">PromptPay</h2>
-                    <p className="text-zinc-500 text-xs font-bold uppercase tracking-[0.2em]">฿{selectedAmount?.toLocaleString()} • Pay to ROOPLIFE</p>
-                  </div>
-                  
-                  <div className="aspect-square bg-white p-6 rounded-[2.5rem] mb-8 border-4 border-zinc-100 dark:border-zinc-800 shadow-inner flex items-center justify-center">
-                    {qrImage ? (
-                      <img src={qrImage} alt="Omise QR Code" className="w-full h-full object-contain" />
-                    ) : (
-                      <div className="flex flex-col items-center gap-4">
-                        <Loader2 className="animate-spin text-blue-600" size={40} />
-                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Generating QR...</p>
+                          <div className="flex items-center gap-2 text-zinc-400 font-bold text-xs ml-2">
+                            <Calendar size={14} />
+                            <span>{event.start_time ? new Date(event.start_time).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) : 'ไม่ระบุเวลา'}</span>
+                          </div>
+                        </div>
                       </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-center gap-2 text-green-600 font-bold text-xs uppercase tracking-widest">
-                      <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                      Waiting for payment
+                      
+                      <div className="px-8 py-4 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-black text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-lg group-hover:bg-blue-600 group-hover:text-white transition-all active:scale-95">
+                        Manage Job
+                      </div>
                     </div>
-                    <p className="text-zinc-400 text-[10px] italic">
-                      ยอดเงินจะอัปเดตอัตโนมัติเมื่อโอนสำเร็จ
-                    </p>
-                  </div>
-                </div>
-              )}
+                  </Link>
+                );
+              })}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="text-center py-24 bg-zinc-100/50 dark:bg-zinc-900/30 rounded-[3rem] border-2 border-dashed border-zinc-200 dark:border-zinc-800">
+              <p className="text-zinc-500 font-medium">No active projects found.</p>
+            </div>
+          )}
+        </section>
       </main>
+
+      {/* --- Modal: Create Event --- */}
+      {isCreating && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[100] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-[3rem] p-10 md:p-12 shadow-2xl border border-zinc-100 dark:border-zinc-800 text-center">
+            <h2 className="text-3xl font-medium mb-2 tracking-tight">New Event</h2>
+            <p className="text-zinc-500 text-sm mb-10 font-medium italic">ระบุชื่อและเวลาเพื่อเริ่มเปิดการทำงาน (฿100)</p>
+            <form onSubmit={handleCreateEvent} className="text-left space-y-6">
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">Event Title</label>
+                <input autoFocus required value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-2xl p-5 focus:ring-1 ring-blue-500 transition-all font-medium" placeholder="เช่น Wedding Party @Siam" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">Start Date & Time</label>
+                <input required type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-2xl p-5 focus:ring-1 ring-blue-500 transition-all font-medium" />
+              </div>
+              {error && <p className="text-red-500 text-[10px] font-bold bg-red-50 dark:bg-red-900/20 p-3 rounded-xl uppercase tracking-widest text-center">⚠️ {error}</p>}
+              <div className="flex flex-col items-center gap-6 pt-6">
+                <button type="submit" className="w-full py-5 bg-zinc-950 dark:bg-zinc-100 text-white dark:text-black font-semibold rounded-3xl shadow-xl uppercase text-[10px] tracking-[0.3em] hover:scale-[1.02] active:scale-95 transition-all">Create Event (฿100)</button>
+                <button type="button" onClick={() => setIsCreating(false)} className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 font-bold uppercase text-[10px] tracking-[0.3em] transition-colors">Cancel & Close</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- Modal: Join Event --- */}
+      {isJoining && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[100] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-[3rem] p-10 shadow-2xl text-center">
+            <h2 className="text-3xl font-medium mb-2 tracking-tight">Join Job</h2>
+            <p className="text-zinc-500 text-sm mb-10 font-medium italic">กรอกรหัส 6 หลักเพื่อเข้าควบคุมงาน</p>
+            <form onSubmit={handleJoinEvent}>
+              <input autoFocus required maxLength={6} type="text" value={joinCodeInput} onChange={(e) => setJoinCodeInput(e.target.value.toUpperCase())} className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-[2rem] p-8 text-center text-4xl font-medium tracking-[0.5em] focus:ring-1 ring-purple-500 transition-all mb-10 uppercase" placeholder="ABCDEF" />
+              <div className="flex flex-col items-center gap-6">
+                <button type="submit" className="w-full py-5 bg-purple-600 text-white font-semibold rounded-[2rem] shadow-xl uppercase text-[10px] tracking-[0.3em] hover:bg-purple-700 transition-all">Join Now</button>
+                <button type="button" onClick={() => setIsJoining(false)} className="text-zinc-400 font-bold uppercase text-[10px] tracking-[0.3em]">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
