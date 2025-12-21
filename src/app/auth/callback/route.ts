@@ -2,7 +2,6 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
-
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
@@ -24,20 +23,19 @@ export async function GET(request: Request) {
                 cookieStore.set(name, value, options)
               )
             } catch {
-              // จัดการ error กรณีเรียกจาก server component
+              // สามารถปล่อยผ่านได้ถ้ามี Middleware คอยจัดการต่อ
             }
           },
         },
       }
     )
-// ใน src/app/auth/callback/route.ts
-    const next = searchParams.get('next') ?? '/dashboard' // ตรวจสอบจุดนี้
+
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
       return NextResponse.redirect(`${origin}${next}`)
     }
   }
 
-  // หากไม่มี code หรือ exchange ไม่สำเร็จ ให้ส่งกลับหน้า login
-  return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+  // หากล้มเหลว ส่งกลับหน้า Login พร้อมแจ้งเตือน
+  return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
 }

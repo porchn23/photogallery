@@ -31,16 +31,18 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // ใช้ getUser() แทน getSession() เพื่อความเสถียรใน SSR
+  // ดึงข้อมูล User (กระตุ้นการ Refresh Cookie อัตโนมัติ)
   const { data: { user } } = await supabase.auth.getUser()
 
   const isDashboardPage = request.nextUrl.pathname.startsWith('/dashboard')
-  const isLoginPage = request.nextUrl.pathname.startsWith('/login')
+  const isLoginPage = request.nextUrl.pathname === '/login'
 
+  // 1. ถ้าไม่ได้ล็อคอิน และจะเข้าหน้า Dashboard ให้ส่งไปหน้า Login
   if (!user && isDashboardPage) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
+  // 2. ถ้าล็อคอินแล้ว และจะเข้าหน้า Login ให้ส่งไปหน้า Dashboard
   if (user && isLoginPage) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
