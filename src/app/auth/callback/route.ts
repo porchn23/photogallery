@@ -23,7 +23,7 @@ export async function GET(request: Request) {
                 cookieStore.set(name, value, options)
               )
             } catch {
-              // สามารถปล่อยผ่านได้ถ้ามี Middleware คอยจัดการต่อ
+              // จัดการ Error กรณี Redirect
             }
           },
         },
@@ -34,8 +34,9 @@ export async function GET(request: Request) {
     if (!error) {
       return NextResponse.redirect(`${origin}${next}`)
     }
+    console.error('Auth error:', error)
   }
 
-  // หากล้มเหลว ส่งกลับหน้า Login พร้อมแจ้งเตือน
+  // หากไม่มี code หรือผิดพลาด ให้กลับไปหน้า login
   return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
 }

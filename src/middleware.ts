@@ -3,9 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
+    request: { headers: request.headers },
   })
 
   const supabase = createServerClient(
@@ -19,9 +17,7 @@ export async function middleware(request: NextRequest) {
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
           response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
+            request: { headers: request.headers },
           })
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)
@@ -31,19 +27,17 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // ดึงข้อมูล User (กระตุ้นการ Refresh Cookie อัตโนมัติ)
+  // ดึงข้อมูล User (กระตุ้นการ Refresh Token อัตโนมัติ)
   const { data: { user } } = await supabase.auth.getUser()
 
-  const isDashboardPage = request.nextUrl.pathname.startsWith('/dashboard')
-  const isLoginPage = request.nextUrl.pathname === '/login'
+  const isDashboard = request.nextUrl.pathname.startsWith('/dashboard')
+  const isLogin = request.nextUrl.pathname === '/login'
 
-  // 1. ถ้าไม่ได้ล็อคอิน และจะเข้าหน้า Dashboard ให้ส่งไปหน้า Login
-  if (!user && isDashboardPage) {
+  if (!user && isDashboard) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // 2. ถ้าล็อคอินแล้ว และจะเข้าหน้า Login ให้ส่งไปหน้า Dashboard
-  if (user && isLoginPage) {
+  if (user && isLogin) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
