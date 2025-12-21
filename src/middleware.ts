@@ -11,33 +11,30 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
+        getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          response = NextResponse.next({
-            request: { headers: request.headers },
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          )
+          response = NextResponse.next({ request: { headers: request.headers } })
+          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
         },
       },
     }
   )
 
-  // ดึงข้อมูล User (กระตุ้นการ Refresh Token อัตโนมัติ)
   const { data: { user } } = await supabase.auth.getUser()
+  const { pathname } = request.nextUrl
 
-  const isDashboard = request.nextUrl.pathname.startsWith('/dashboard')
-  const isLogin = request.nextUrl.pathname === '/login'
+  console.log(`--- DEBUG MIDDLEWARE --- Path: ${pathname} | User: ${user ? 'Found' : 'Not Found'}`)
 
-  if (!user && isDashboard) {
+  // กรณีพยายามเข้า Dashboard แต่ไม่มี User
+  if (!user && pathname.startsWith('/dashboard')) {
+    console.log('DEBUG: No user in dashboard, redirecting to login')
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  if (user && isLogin) {
+  // กรณีล็อคอินแล้วแต่พยายามเข้าหน้า Login
+  if (user && pathname === '/login') {
+    console.log('DEBUG: User exists, redirecting from login to dashboard')
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 

@@ -5,7 +5,9 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/dashboard'
+  
+  console.log('--- DEBUG: CALLBACK START ---')
+  console.log('Code exists:', !!code)
 
   if (code) {
     const cookieStore = await cookies()
@@ -14,29 +16,26 @@ export async function GET(request: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
+          getAll() { return cookieStore.getAll() },
           setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              )
-            } catch {
-              // จัดการ Error กรณี Redirect
-            }
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
           },
         },
       }
     )
 
     const { error } = await supabase.auth.exchangeCodeForSession(code)
+    
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`)
+      console.log('DEBUG: Exchange success, redirecting to /dashboard')
+      return NextResponse.redirect(`${origin}/dashboard`)
     }
-    console.error('Auth error:', error)
+    
+    console.error('DEBUG: Exchange error:', error.message)
   }
 
-  // หากไม่มี code หรือผิดพลาด ให้กลับไปหน้า login
-  return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
+  console.log('DEBUG: No code or error found, redirecting to login')
+  return NextResponse.redirect(`${origin}/login?error=auth_failed`)
 }
