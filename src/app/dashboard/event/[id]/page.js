@@ -5,8 +5,7 @@ import { supabase } from '@/src/lib/supabase';
 import Header from '@/src/components/Header';
 import { 
   Camera, Plus, Zap, Users, ShieldAlert, Image as ImageIcon, 
-  Calendar, Copy, Edit2, Loader2, X, UserCheck, 
-  ChevronRight, Clock, Shield
+  Calendar, Copy, Edit2, Loader2, X, UserCheck, Shield, Clock
 } from 'lucide-react';
 
 export default function EventManagement() {
@@ -178,7 +177,7 @@ export default function EventManagement() {
       
       <main className="max-w-7xl mx-auto px-6 pt-12 space-y-10">
         
-        {/* --- Section 1: Identity & Team (Full Width) --- */}
+        {/* --- Section 1: Identity & Team --- */}
         <section className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] p-8 md:p-10 shadow-sm">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-10">
             <div className="space-y-4">
@@ -214,7 +213,7 @@ export default function EventManagement() {
             </button>
           </div>
 
-          {/* Team Members: Sub-row inside Section 1 */}
+          {/* Team Members */}
           <div className="pt-8 border-t border-zinc-100 dark:border-zinc-800">
             <div className="flex items-center gap-3 mb-4">
               <Users size={14} className="text-zinc-400" />
@@ -234,7 +233,7 @@ export default function EventManagement() {
           </div>
         </section>
 
-        {/* --- Section 2: Camera Slots (Equal Size Grid) --- */}
+        {/* --- Section 2: Camera Slots (Compact Size) --- */}
         <section className="space-y-6">
           <div className="flex items-center justify-between px-2">
             <h2 className="text-lg font-medium tracking-tight flex items-center gap-2">
@@ -245,23 +244,23 @@ export default function EventManagement() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {activeCameras.map((ac) => (
-              <div key={ac.id} className="aspect-square bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-[2rem] shadow-sm flex flex-col justify-between group">
-                <div className="flex justify-between items-start">
-                  <div className="w-12 h-12 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-zinc-400 group-hover:text-blue-500 transition-colors">
-                    <Camera size={24} />
+              <div key={ac.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-3xl shadow-sm flex flex-col justify-between group">
+                <div className="flex justify-between items-start mb-6">
+                  <div className="w-10 h-10 bg-zinc-50 dark:bg-zinc-800 rounded-xl flex items-center justify-center text-zinc-400 group-hover:text-blue-500 transition-colors">
+                    <Camera size={20} />
                   </div>
-                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.3)]" />
+                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.3)]" />
                 </div>
-                <div className="space-y-1">
-                  <h3 className="text-lg font-medium truncate leading-tight">{ac.cameras?.nickname}</h3>
+                <div className="space-y-1 mb-6">
+                  <h3 className="text-base font-medium truncate leading-tight">{ac.cameras?.nickname}</h3>
                   <p className="text-[10px] text-zinc-400 uppercase tracking-wider">{ac.cameras?.brand} {ac.cameras?.model}</p>
                 </div>
                 <div className="pt-4 border-t border-zinc-50 dark:border-zinc-800/50 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[10px] text-zinc-400">
+                    <div className="w-5 h-5 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[9px] text-zinc-400">
                       {ac.users?.full_name?.charAt(0)}
                     </div>
-                    <span className="text-[10px] text-zinc-400 uppercase">{ac.users?.full_name?.split(' ')[0]}</span>
+                    <span className="text-[9px] text-zinc-400 uppercase">{ac.users?.full_name?.split(' ')[0]}</span>
                   </div>
                   <button disabled={isExpired} onClick={() => handleDisconnect(ac)} className="text-[10px] font-medium text-zinc-400 hover:text-red-500 transition-colors">Exit</button>
                 </div>
@@ -269,14 +268,14 @@ export default function EventManagement() {
             ))}
 
             {Array.from({ length: Math.max(0, (event?.max_cameras || 0) - activeCameras.length) }).map((_, i) => (
-              <button key={`empty-${i}`} disabled={isExpired} onClick={() => setIsCheckInOpen(true)} className={`aspect-square border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center gap-3 transition-all ${isExpired ? 'opacity-10' : 'bg-zinc-50/50 dark:bg-zinc-900/10 border-zinc-200 dark:border-zinc-800 hover:bg-white hover:border-blue-400 hover:shadow-md'}`}>
-                <div className="w-10 h-10 rounded-full border border-zinc-300 dark:border-zinc-700 flex items-center justify-center text-zinc-400"><Plus size={20} /></div>
+              <button key={`empty-${i}`} disabled={isExpired} onClick={() => setIsCheckInOpen(true)} className={`min-h-[140px] border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${isExpired ? 'opacity-10' : 'bg-zinc-50/50 dark:bg-zinc-900/10 border-zinc-200 dark:border-zinc-800 hover:bg-white hover:border-blue-400 hover:shadow-md'}`}>
+                <div className="w-8 h-8 rounded-full border border-zinc-300 dark:border-zinc-700 flex items-center justify-center text-zinc-400"><Plus size={16} /></div>
                 <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-400">Connect Slot</span>
               </button>
             ))}
 
-            <button onClick={handleAddSlot} disabled={isExpired} className={`aspect-square border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center gap-3 transition-all ${isExpired ? 'opacity-10' : 'bg-blue-50/20 dark:bg-blue-900/5 border-blue-100 dark:border-blue-500/20 hover:bg-white hover:border-blue-500 hover:shadow-md'}`}>
-              <div className="w-10 h-10 rounded-full border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-500"><Plus size={20} /></div>
+            <button onClick={handleAddSlot} disabled={isExpired} className={`min-h-[140px] border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${isExpired ? 'opacity-10' : 'bg-blue-50/20 dark:bg-blue-900/5 border-blue-100 dark:border-blue-500/20 hover:bg-white hover:border-blue-500 hover:shadow-md'}`}>
+              <div className="w-8 h-8 rounded-full border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-500"><Plus size={16} /></div>
               <div className="text-center">
                 <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-blue-600 block">Buy Slot</span>
                 <span className="text-[11px] font-medium text-blue-400">฿50</span>
@@ -285,7 +284,7 @@ export default function EventManagement() {
           </div>
         </section>
 
-        {/* --- Section 3: Storage Control (Full Width) --- */}
+        {/* --- Section 3: Storage Control --- */}
         <section className="bg-zinc-950 dark:bg-zinc-900 rounded-[2.5rem] p-8 md:p-12 text-white relative overflow-hidden">
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
