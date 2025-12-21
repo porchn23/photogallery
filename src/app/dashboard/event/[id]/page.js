@@ -7,12 +7,12 @@ import {
   Camera, Plus, Zap, Users, ShieldAlert, Image as ImageIcon, 
   Calendar, Copy, Edit2, Loader2, X, UserCheck, Shield, Clock
 } from 'lucide-react';
+import { formatThaiDate, toLocalISOString } from '@/src/lib/utils'; // เพิ่ม Import
 
 export default function EventManagement() {
   const { id: eventId } = useParams();
   const router = useRouter();
 
-  // --- States ---
   const [event, setEvent] = useState(null);
   const [user, setUser] = useState(null);
   const [activeCameras, setActiveCameras] = useState([]);
@@ -21,8 +21,6 @@ export default function EventManagement() {
   const [myGarage, setMyGarage] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isCheckInOpen, setIsCheckInOpen] = useState(false);
-  
-  // Edit States
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editStartTime, setEditStartTime] = useState('');
@@ -33,34 +31,21 @@ export default function EventManagement() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'event_cameras' }, () => fetchData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'event_members' }, () => fetchData())
       .subscribe();
-
     return () => supabase.removeChannel(channel);
   }, [eventId]);
 
-// ... existing code ...
-async function fetchData() {
+  async function fetchData() {
     try {
-      // 1. ตรวจสอบ User ที่ล็อคอินอยู่จริง
       const { data: { user: authUser } } = await supabase.auth.getUser();
-      
-      if (!authUser) {
-        router.push('/login');
-        return;
-      }
+      if (!authUser) { router.push('/login'); return; }
 
-      // 2. แปลง Join Code เป็น UUID (ถ้าจำเป็น)
       let realId = eventId;
       if (eventId.length < 30) {
-        const { data: eventByCode } = await supabase.from('events').select('id').eq('join_code', eventId).single();
-        if (eventByCode) realId = eventByCode.id;
-        else { 
-          alert('ไม่พบอีเวนต์นี้ในระบบ'); 
-          router.push('/dashboard');
-          return; 
-        }
+        const { data: evCode } = await supabase.from('events').select('id').eq('join_code', eventId).single();
+        if (evCode) realId = evCode.id;
+        else { alert('ไม่พบอีเวนต์'); router.push('/dashboard'); return; }
       }
 
-      // 3. ดึงข้อมูล Event และสมาชิกเพื่อเช็คสิทธิ์
       const [eventRes, membersRes] = await Promise.all([
         supabase.from('events').select('*').eq('id', realId).single(),
         supabase.from('event_members').select('*, users(*)').eq('event_id', realId)
@@ -68,18 +53,15 @@ async function fetchData() {
 
       const eventData = eventRes.data;
       const membersData = membersRes.data || [];
-
-      // 🛑 [SECURITY CHECK] ตรวจสอบสิทธิ์การเข้าถึง
       const isOwner = eventData?.owner_id === authUser.id;
       const isMember = membersData.some(m => m.user_id === authUser.id);
 
       if (!eventData || (!isOwner && !isMember)) {
-        alert('คุณไม่มีสิทธิ์เข้าถึงการจัดการอีเวนต์นี้');
+        alert('คุณไม่มีสิทธิ์เข้าถึงงานนี้');
         router.push('/dashboard');
         return;
       }
 
-      // 4. ถ้าผ่านการเช็คสิทธิ์แล้ว ให้ดึงข้อมูลที่เหลือ
       const [userRes, garageRes, activeCamsRes, historyCamsRes] = await Promise.all([
         supabase.from('users').select('*').eq('id', authUser.id).single(),
         supabase.from('cameras').select('*').eq('owner_id', authUser.id),
@@ -88,59 +70,45 @@ async function fetchData() {
       ]);
 
       setEvent(eventData);
-      setEventMembers(membersData);
       setUser(userRes.data);
       setMyGarage(garageRes.data || []);
       setActiveCameras(activeCamsRes.data || []);
       setCameraHistory(historyCamsRes.data || []);
-      
+      setEventMembers(membersData);
       setEditTitle(eventData?.title);
-      setEditStartTime(eventData?.start_time?.substring(0, 16));
-
-    } catch (err) {
-      console.error('Fetch Data Error:', err);
-      router.push('/dashboard');
-    } finally {
-      setLoading(false);
-    }
+      // ใช้ Helper แปลงเวลา UTC ให้เป็นเวลาท้องถิ่นเพื่อใส่ใน Input
+      setEditStartTime(toLocalISOString(eventData?.start_time));
+    } catch (err) { console.error(err); router.push('/dashboard'); }
+    finally { setLoading(false); }
   }
-// ... existing code ...
-  // --- Helpers ---
+
   const getEventDates = () => {
     if (!event?.created_at) return { start: null, expiry: null, isExpired: false, daysRemaining: 0 };
-    const start = new Date(event.start_time);
-    const expiry = new Date(new Date(event.created_at).getTime() + ((event.storage_days || 3) * 24 * 60 * 60 * 1000));
+    const createdAt = new Date(event.created_at);
+    // คำนวณวันหมดอายุตามเวลามาตรฐาน UTC
+    const expiry = new Date(createdAt.getTime() + ((event.storage_days || 3) * 24 * 60 * 60 * 1000));
     const now = new Date();
     const daysRemaining = Math.max(0, Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-    return { start, expiry, isExpired: now > expiry, daysRemaining };
+    return { start: new Date(event.start_time), expiry, isExpired: now > expiry, daysRemaining };
   };
 
   const { expiry, isExpired, daysRemaining } = getEventDates();
 
-  const getEventStatus = (startTime) => {
-    if (!startTime) return { label: 'ยังไม่เริ่ม', color: 'text-amber-500', dot: 'bg-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/10' };
+  const getEventStatus = (startTimeStr) => {
+    if (!startTimeStr) return { label: 'ยังไม่เริ่ม', color: 'text-amber-500', dot: 'bg-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/10' };
     const now = new Date();
-    const start = new Date(startTime);
+    const start = new Date(startTimeStr);
     if (isExpired) return { label: 'สิ้นสุด/หมดอายุ', color: 'text-red-500', dot: 'bg-red-500', bg: 'bg-red-50 dark:bg-red-900/10' };
     if (now < start) return { label: 'ยังไม่เริ่ม', color: 'text-amber-500', dot: 'bg-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/10' };
     return { label: 'Active', color: 'text-green-500', dot: 'bg-green-500 animate-pulse', bg: 'bg-green-50 dark:bg-green-900/10' };
   };
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    alert('คัดลอก Join Code แล้ว: ' + text);
-  };
-
-  const canEdit = () => {
-    if (!event?.start_time) return true;
-    return new Date() < new Date(event.start_time) && !isExpired;
-  };
-
-  // --- Actions ---
   const handleUpdateEvent = async (e) => {
     e.preventDefault();
     try {
-      const { error } = await supabase.from('events').update({ title: editTitle, start_time: editStartTime }).eq('id', event.id);
+      // แปลงเวลากลับเป็น ISO String ก่อนบันทึก
+      const startTimeISO = editStartTime ? new Date(editStartTime).toISOString() : null;
+      const { error } = await supabase.from('events').update({ title: editTitle, start_time: startTimeISO }).eq('id', event.id);
       if (error) throw error;
       setIsEditing(false);
       fetchData();
@@ -148,59 +116,54 @@ async function fetchData() {
   };
 
   const handleAddSlot = async () => {
-    if (isExpired) return alert('อีเวนต์สิ้นสุดแล้ว ไม่สามารถซื้อ Slot เพิ่มได้');
-    if (!user || user.wallet_balance < 50) return alert('เงินไม่พอครับ');
-    if (!confirm('ยืนยันซื้อที่ว่างกล้องเพิ่ม 1 Slot (50 THB)?')) return;
+    if (isExpired) return alert('งานหมดอายุแล้ว');
+    if (!user || user.wallet_balance < 50) return alert('เงินไม่พอ');
+    if (!confirm('ซื้อ Slot เพิ่ม (50 THB)?')) return;
     try {
-      const { error: walletError } = await supabase.from('users').update({ wallet_balance: user.wallet_balance - 50 }).eq('id', user.id);
-      if (walletError) throw walletError;
-      const { error: eventError } = await supabase.from('events').update({ max_cameras: (event.max_cameras || 1) + 1 }).eq('id', event.id);
-      if (eventError) throw eventError;
-      await supabase.from('wallet_transactions').insert({ user_id: user.id, amount: -50, type: 'add_slot', description: `เพิ่ม Slot งาน: ${event.title}` });
+      await supabase.from('users').update({ wallet_balance: user.wallet_balance - 50 }).eq('id', user.id);
+      await supabase.from('events').update({ max_cameras: (event.max_cameras || 1) + 1 }).eq('id', event.id);
+      await supabase.from('wallet_transactions').insert({ user_id: user.id, amount: -50, type: 'add_slot', description: `เพิ่ม Slot: ${event.title}` });
       fetchData();
     } catch (err) { alert(err.message); }
   };
 
-  const handleCheckIn = async (cameraId) => {
-    if (isExpired) return alert('อีเวนต์สิ้นสุดแล้ว');
+  const handleCheckIn = async (camId) => {
+    if (isExpired) return alert('งานหมดอายุแล้ว');
     try {
-      const { error } = await supabase.from('event_cameras').insert([{ event_id: event.id, camera_id: cameraId, user_id: user.id, status: 'active' }]);
+      const { error } = await supabase.from('event_cameras').insert([{ event_id: event.id, camera_id: camId, user_id: user.id, status: 'active' }]);
       if (error) throw error;
       setIsCheckInOpen(false);
       fetchData();
-    } catch (err) { alert('กล้องนี้อาจถูกใช้งานอยู่ในงานอื่น'); }
+    } catch (err) { alert('กล้องไม่พร้อมใช้งาน'); }
   };
 
   const handleDisconnect = async (ac) => {
-    if (isExpired) return alert('อีเวนต์สิ้นสุดแล้ว ไม่สามารถเตะกล้องออกได้');
-    if (confirm(`เตะกล้อง "${ac.cameras?.nickname}" ออกจาก Slot?`)) {
-      await supabase.from('event_cameras').update({ status: 'inactive', last_seen: new Date() }).eq('id', ac.id);
+    if (isExpired) return alert('งานหมดอายุแล้ว');
+    if (confirm(`เตะกล้อง "${ac.cameras?.nickname}"?`)) {
+      await supabase.from('event_cameras').update({ status: 'inactive', last_seen: new Date().toISOString() }).eq('id', ac.id);
       fetchData();
     }
   };
 
   const handleExtendStorage = async () => {
-    if (!user || user.wallet_balance < 50) return alert('เงินไม่พอครับ');
-    if (!confirm('ต่ออายุการเก็บรูปเพิ่ม 1 วัน (50 THB)?')) return;
+    if (!user || user.wallet_balance < 50) return alert('เงินไม่พอ');
+    if (!confirm('ต่ออายุเพิ่ม 1 วัน (50 THB)?')) return;
     try {
       await supabase.from('users').update({ wallet_balance: user.wallet_balance - 50 }).eq('id', user.id);
       await supabase.from('events').update({ storage_days: (event.storage_days || 3) + 1 }).eq('id', event.id);
-      await supabase.from('wallet_transactions').insert({ user_id: user.id, amount: -50, type: 'extend_storage', description: `ต่ออายุรูปงาน: ${event.title}` });
+      await supabase.from('wallet_transactions').insert({ user_id: user.id, amount: -50, type: 'extend_storage', description: `ต่ออายุงาน: ${event.title}` });
       fetchData();
     } catch (err) { alert(err.message); }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-zinc-400 font-medium uppercase tracking-widest text-xs animate-pulse"><Loader2 className="animate-spin mr-2" /> Loading Command Center...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-zinc-400 text-xs animate-pulse"><Loader2 className="animate-spin mr-2" /> Loading Command Center...</div>;
 
   const status = getEventStatus(event?.start_time);
 
   return (
     <div className="min-h-screen bg-[#fafafa] dark:bg-[#09090b] text-zinc-900 dark:text-zinc-100 font-sans pb-24">
       <Header balance={user?.wallet_balance} user={user} />
-      
       <main className="max-w-7xl mx-auto px-6 pt-12 space-y-10">
-        
-        {/* --- Section 1: Identity & Team --- */}
         <section className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] p-8 md:p-10 shadow-sm">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-10">
             <div className="space-y-4">
@@ -209,42 +172,34 @@ async function fetchData() {
                   <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
                   <span className={`text-[10px] font-semibold uppercase tracking-wider ${status.color}`}>{status.label}</span>
                 </div>
-                {canEdit() && (
-                  <button onClick={() => setIsEditing(true)} className="p-2 text-zinc-400 hover:text-blue-500 transition-colors">
-                    <Edit2 size={16} />
-                  </button>
+                {(new Date() < new Date(event?.start_time) && !isExpired) && (
+                  <button onClick={() => setIsEditing(true)} className="p-2 text-zinc-400 hover:text-blue-500 transition-colors"><Edit2 size={16} /></button>
                 )}
               </div>
-              <h1 className="text-4xl md:text-5xl font-medium tracking-tight text-zinc-900 dark:text-white">{event?.title}</h1>
+              <h1 className="text-4xl md:text-5xl font-medium tracking-tight">{event?.title}</h1>
               <div className="flex flex-wrap items-center gap-6 text-zinc-500">
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-400">Join Code</span>
                   <span className="text-xl font-medium tracking-widest text-blue-600 dark:text-blue-400">{event?.join_code}</span>
-                  <button onClick={() => copyToClipboard(event?.join_code)} className="p-1.5 hover:text-blue-500 transition-colors"><Copy size={14} /></button>
+                  <button onClick={() => { navigator.clipboard.writeText(event?.join_code); alert('คัดลอกแล้ว'); }} className="p-1.5 hover:text-blue-500"><Copy size={14} /></button>
                 </div>
                 <div className="h-4 w-[1px] bg-zinc-200 dark:bg-zinc-800" />
                 <div className="flex items-center gap-2 text-sm">
                   <Calendar size={16} className="text-zinc-400" />
-                  <span>{event?.start_time ? new Date(event.start_time).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) : 'ไม่ระบุ'}</span>
+                  {/* ใช้ Helper แสดงเวลาไทย */}
+                  <span>{formatThaiDate(event?.start_time)}</span>
                 </div>
               </div>
             </div>
-
-            <button onClick={() => window.open(`/event/${event?.id}`, '_blank')} className="px-10 py-4 bg-zinc-950 dark:bg-zinc-100 text-white dark:text-black font-medium rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3">
-              <Zap size={18} fill="currentColor" /> 
-              <span className="uppercase tracking-[0.2em] text-[11px]">Public Gallery</span>
+            <button onClick={() => window.open(`/event/${event?.id}`, '_blank')} className="px-10 py-4 bg-zinc-950 dark:bg-zinc-100 text-white dark:text-black font-medium rounded-2xl shadow-xl flex items-center gap-3">
+              <Zap size={18} fill="currentColor" /> <span className="uppercase tracking-[0.2em] text-[11px]">Public Gallery</span>
             </button>
           </div>
-
-          {/* Team Members */}
           <div className="pt-8 border-t border-zinc-100 dark:border-zinc-800">
-            <div className="flex items-center gap-3 mb-4">
-              <Users size={14} className="text-zinc-400" />
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">Project Team ({eventMembers.length})</span>
-            </div>
+            <div className="flex items-center gap-3 mb-4"><Users size={14} className="text-zinc-400" /><span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">Project Team ({eventMembers.length})</span></div>
             <div className="flex flex-wrap gap-3">
-              {eventMembers.map((m) => (
-                <div key={m.id} className="flex items-center gap-2 bg-zinc-50 dark:bg-zinc-800/50 px-3 py-1.5 rounded-full border border-zinc-100 dark:border-zinc-700/50 group">
+              {eventMembers.map(m => (
+                <div key={m.id} className="flex items-center gap-2 bg-zinc-50 dark:bg-zinc-800/50 px-3 py-1.5 rounded-full border border-zinc-100 dark:border-zinc-700/50">
                   <div className="w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-[10px] overflow-hidden">
                     {m.users?.avatar_url ? <img src={m.users.avatar_url} /> : m.users?.full_name?.charAt(0)}
                   </div>
@@ -255,148 +210,54 @@ async function fetchData() {
             </div>
           </div>
         </section>
-
-        {/* --- Section 2: Camera Slots (Compact Size) --- */}
         <section className="space-y-6">
-          <div className="flex items-center justify-between px-2">
-            <h2 className="text-lg font-medium tracking-tight flex items-center gap-2">
-              <Camera size={20} className="text-blue-500" /> Camera Slots
-            </h2>
-            <span className="text-[10px] font-medium text-zinc-400 uppercase tracking-widest">{activeCameras.length} / {event?.max_cameras} In Use</span>
-          </div>
-
+          <div className="flex items-center justify-between px-2"><h2 className="text-lg font-medium tracking-tight flex items-center gap-2"><Camera size={20} className="text-blue-500" /> Camera Slots</h2><span className="text-[10px] font-medium text-zinc-400 uppercase tracking-widest">{activeCameras.length} / {event?.max_cameras} In Use</span></div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {activeCameras.map((ac) => (
+            {activeCameras.map(ac => (
               <div key={ac.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-3xl shadow-sm flex flex-col justify-between group">
-                <div className="flex justify-between items-start mb-6">
-                  <div className="w-10 h-10 bg-zinc-50 dark:bg-zinc-800 rounded-xl flex items-center justify-center text-zinc-400 group-hover:text-blue-500 transition-colors">
-                    <Camera size={20} />
-                  </div>
-                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.3)]" />
-                </div>
-                <div className="space-y-1 mb-6">
-                  <h3 className="text-base font-medium truncate leading-tight">{ac.cameras?.nickname}</h3>
-                  <p className="text-[10px] text-zinc-400 uppercase tracking-wider">{ac.cameras?.brand} {ac.cameras?.model}</p>
-                </div>
-                <div className="pt-4 border-t border-zinc-50 dark:border-zinc-800/50 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[9px] text-zinc-400">
-                      {ac.users?.full_name?.charAt(0)}
-                    </div>
-                    <span className="text-[9px] text-zinc-400 uppercase">{ac.users?.full_name?.split(' ')[0]}</span>
-                  </div>
-                  <button disabled={isExpired} onClick={() => handleDisconnect(ac)} className="text-[10px] font-medium text-zinc-400 hover:text-red-500 transition-colors">Exit</button>
-                </div>
+                <div className="flex justify-between items-start mb-6"><div className="w-10 h-10 bg-zinc-50 dark:bg-zinc-800 rounded-xl flex items-center justify-center text-zinc-400 group-hover:text-blue-500 transition-colors"><Camera size={20} /></div><span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.3)]" /></div>
+                <div className="space-y-1 mb-6"><h3 className="text-base font-medium truncate leading-tight">{ac.cameras?.nickname}</h3><p className="text-[10px] text-zinc-400 uppercase tracking-wider">{ac.cameras?.brand} {ac.cameras?.model}</p></div>
+                <div className="pt-4 border-t border-zinc-50 dark:border-zinc-800/50 flex items-center justify-between"><div className="flex items-center gap-2"><div className="w-5 h-5 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[9px] text-zinc-400">{ac.users?.full_name?.charAt(0)}</div><span className="text-[9px] text-zinc-400 uppercase">{ac.users?.full_name?.split(' ')[0]}</span></div><button disabled={isExpired} onClick={() => handleDisconnect(ac)} className="text-[10px] font-medium text-zinc-400 hover:text-red-500">Exit</button></div>
               </div>
             ))}
-
             {Array.from({ length: Math.max(0, (event?.max_cameras || 0) - activeCameras.length) }).map((_, i) => (
-              <button key={`empty-${i}`} disabled={isExpired} onClick={() => setIsCheckInOpen(true)} className={`min-h-[140px] border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${isExpired ? 'opacity-10' : 'bg-zinc-50/50 dark:bg-zinc-900/10 border-zinc-200 dark:border-zinc-800 hover:bg-white hover:border-blue-400 hover:shadow-md'}`}>
-                <div className="w-8 h-8 rounded-full border border-zinc-300 dark:border-zinc-700 flex items-center justify-center text-zinc-400"><Plus size={16} /></div>
-                <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-400">Connect Slot</span>
-              </button>
+              <button key={`empty-${i}`} disabled={isExpired} onClick={() => setIsCheckInOpen(true)} className={`min-h-[140px] border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${isExpired ? 'opacity-10' : 'bg-zinc-50/50 dark:bg-zinc-900/10 border-zinc-200 dark:border-zinc-800 hover:bg-white hover:border-blue-400 hover:shadow-md'}`}><div className="w-8 h-8 rounded-full border border-zinc-300 dark:border-zinc-700 flex items-center justify-center text-zinc-400"><Plus size={16} /></div><span className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-400">Connect Slot</span></button>
             ))}
-
-            <button onClick={handleAddSlot} disabled={isExpired} className={`min-h-[140px] border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${isExpired ? 'opacity-10' : 'bg-blue-50/20 dark:bg-blue-900/5 border-blue-100 dark:border-blue-500/20 hover:bg-white hover:border-blue-500 hover:shadow-md'}`}>
-              <div className="w-8 h-8 rounded-full border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-500"><Plus size={16} /></div>
-              <div className="text-center">
-                <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-blue-600 block">Buy Slot</span>
-                <span className="text-[11px] font-medium text-blue-400">฿50</span>
-              </div>
-            </button>
+            <button onClick={handleAddSlot} disabled={isExpired} className={`min-h-[140px] border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${isExpired ? 'opacity-10' : 'bg-blue-50/20 dark:bg-blue-900/5 border-blue-100 dark:border-blue-500/20 hover:bg-white hover:border-blue-500 hover:shadow-md'}`}><div className="w-8 h-8 rounded-full border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-500"><Plus size={16} /></div><div className="text-center"><span className="text-[10px] font-medium uppercase tracking-[0.2em] text-blue-600 block">Buy Slot</span><span className="text-[11px] font-medium text-blue-400">฿50</span></div></button>
           </div>
         </section>
-
-        {/* --- Section 3: Storage Control --- */}
         <section className="bg-zinc-950 dark:bg-zinc-900 rounded-[2.5rem] p-8 md:p-12 text-white relative overflow-hidden">
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-blue-500/20 rounded-2xl"><ImageIcon size={20} className="text-blue-400" /></div>
-                <h2 className="text-2xl font-medium tracking-tight uppercase tracking-widest">Storage Control</h2>
-              </div>
-              <div className="space-y-4">
-                <div className="flex justify-between items-end">
-                  <p className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest leading-none">Days remaining</p>
-                  <span className={`text-5xl font-medium tracking-tighter ${daysRemaining <= 1 ? 'text-red-500' : 'text-white'}`}>{daysRemaining}</span>
-                </div>
-                <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
-                  <div className={`h-full transition-all duration-1000 ${daysRemaining <= 1 ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${Math.min(100, (daysRemaining / (event?.storage_days || 3)) * 100)}%` }} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-8 pt-4">
-                <div>
-                  <p className="text-[9px] font-medium text-zinc-500 uppercase tracking-widest mb-1">Created</p>
-                  <p className="text-sm font-medium">{event?.created_at && new Date(event.created_at).toLocaleDateString('th-TH')}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[9px] font-medium text-zinc-500 uppercase tracking-widest mb-1">Expires</p>
-                  <p className={`text-sm font-medium ${isExpired ? 'text-red-500' : 'text-white'}`}>{expiry?.toLocaleDateString('th-TH')}</p>
-                </div>
-              </div>
+              <div className="flex items-center gap-3"><div className="p-2.5 bg-blue-500/20 rounded-2xl"><ImageIcon size={20} className="text-blue-400" /></div><h2 className="text-2xl font-medium uppercase tracking-widest">Storage Control</h2></div>
+              <div className="space-y-4"><div className="flex justify-between items-end"><p className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest leading-none">Days remaining</p><span className={`text-5xl font-medium tracking-tighter ${daysRemaining <= 1 ? 'text-red-500' : 'text-white'}`}>{daysRemaining}</span></div><div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden"><div className={`h-full transition-all duration-1000 ${daysRemaining <= 1 ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${Math.min(100, (daysRemaining / (event?.storage_days || 3)) * 100)}%` }} /></div></div>
+              <div className="grid grid-cols-2 gap-8 pt-4"><div><p className="text-[9px] font-medium text-zinc-500 uppercase tracking-widest mb-1">Created</p><p className="text-sm font-medium">{event?.created_at && new Date(event.created_at).toLocaleDateString('th-TH')}</p></div><div className="text-right"><p className="text-[9px] font-medium text-zinc-500 uppercase tracking-widest mb-1">Expires</p><p className={`text-sm font-medium ${isExpired ? 'text-red-500' : 'text-white'}`}>{expiry?.toLocaleDateString('th-TH')}</p></div></div>
             </div>
-
-            <div className="flex flex-col gap-4">
-              <div className="bg-white/5 border border-white/5 p-6 rounded-3xl backdrop-blur-sm">
-                <p className="text-xs text-zinc-400 mb-4 font-medium leading-relaxed italic">ขยายเวลาการจัดเก็บรูปภาพเพื่อรักษาความทรงจำให้นานขึ้น ฿50 ต่อ 1 วัน</p>
-                <button onClick={handleExtendStorage} className="w-full py-5 bg-white text-black font-semibold rounded-2xl text-[11px] uppercase tracking-[0.2em] hover:bg-blue-500 hover:text-white transition-all shadow-xl">Extend Storage</button>
-              </div>
-            </div>
+            <div className="flex flex-col gap-4"><div className="bg-white/5 border border-white/5 p-6 rounded-3xl backdrop-blur-sm"><p className="text-xs text-zinc-400 mb-4 font-medium leading-relaxed italic text-center">ขยายเวลาจัดเก็บรูปภาพ ฿50 ต่อ 1 วัน</p><button onClick={handleExtendStorage} className="w-full py-5 bg-white text-black font-semibold rounded-2xl text-[11px] uppercase tracking-[0.2em] hover:bg-blue-500 hover:text-white transition-all shadow-xl">Extend Storage</button></div></div>
           </div>
           <ShieldAlert size={300} className="absolute -right-32 -bottom-32 text-white/5 rotate-12 pointer-events-none" />
         </section>
       </main>
-
-      {/* --- Modals --- */}
       {isEditing && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[150] flex items-center justify-center p-6">
           <div className="bg-white dark:bg-zinc-950 w-full max-w-lg rounded-[3rem] p-12 shadow-2xl">
-            <div className="flex justify-between items-center mb-10">
-              <h2 className="text-2xl font-medium tracking-tight uppercase tracking-widest">Edit Job</h2>
-              <button onClick={() => setIsEditing(false)} className="p-2 text-zinc-400 hover:text-red-500 transition-colors"><X size={20}/></button>
-            </div>
+            <div className="flex justify-between items-center mb-10"><h2 className="text-2xl font-medium uppercase tracking-widest">Edit Job</h2><button onClick={() => setIsEditing(false)} className="p-2 text-zinc-400 hover:text-red-500"><X size={20}/></button></div>
             <form onSubmit={handleUpdateEvent} className="space-y-8">
-              <div className="space-y-2">
-                <label className="text-[10px] font-medium uppercase tracking-widest text-zinc-400">Title</label>
-                <input required value={editTitle} onChange={e => setEditTitle(e.target.value)} className="w-full bg-zinc-50 dark:bg-zinc-900 border-none rounded-2xl p-6 font-medium text-xl shadow-inner outline-none focus:ring-1 ring-blue-500 transition-all" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-medium uppercase tracking-widest text-zinc-400">Start Time</label>
-                <input type="datetime-local" required value={editStartTime} onChange={e => setEditStartTime(e.target.value)} className="w-full bg-zinc-50 dark:bg-zinc-900 border-none rounded-2xl p-6 font-medium text-lg shadow-inner outline-none focus:ring-1 ring-blue-500 transition-all" />
-              </div>
+              <div className="space-y-2"><label className="text-[10px] font-medium uppercase tracking-widest text-zinc-400">Title</label><input required value={editTitle} onChange={e => setEditTitle(e.target.value)} className="w-full bg-zinc-50 dark:bg-zinc-900 border-none rounded-2xl p-6 font-medium text-xl shadow-inner outline-none focus:ring-1 ring-blue-500 transition-all" /></div>
+              <div className="space-y-2"><label className="text-[10px] font-medium uppercase tracking-widest text-zinc-400">Start Time</label><input type="datetime-local" required value={editStartTime} onChange={e => setEditStartTime(e.target.value)} className="w-full bg-zinc-50 dark:bg-zinc-900 border-none rounded-2xl p-6 font-medium text-lg shadow-inner outline-none focus:ring-1 ring-blue-500 transition-all" /></div>
               <button type="submit" className="w-full py-6 bg-zinc-950 dark:bg-zinc-100 text-white dark:text-black font-semibold rounded-2xl uppercase text-[10px] tracking-[0.3em] transition-all">Save Changes</button>
             </form>
           </div>
         </div>
       )}
-
       {isCheckInOpen && (
         <div className="fixed inset-0 bg-white/95 dark:bg-black/95 backdrop-blur-3xl z-[100] flex items-center justify-center p-6">
           <div className="bg-white dark:bg-zinc-950 w-full max-w-2xl rounded-[4rem] p-12 shadow-2xl border border-zinc-100 dark:border-zinc-800">
-            <div className="flex justify-between items-start mb-12">
-              <div className="space-y-2">
-                <h2 className="text-2xl font-medium tracking-tight uppercase tracking-widest">Connect Device</h2>
-                <p className="text-zinc-500 text-sm font-medium tracking-tight">Select a camera from your garage</p>
-              </div>
-              <button onClick={() => setIsCheckInOpen(false)} className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full text-zinc-400 hover:text-red-500 transition-all"><X size={20}/></button>
-            </div>
+            <div className="flex justify-between items-start mb-12"><div className="space-y-2"><h2 className="text-2xl font-medium uppercase tracking-widest">Connect Device</h2><p className="text-zinc-500 text-sm font-medium tracking-tight">Select a camera from your garage</p></div><button onClick={() => setIsCheckInOpen(false)} className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full text-zinc-400 hover:text-red-500 transition-all"><X size={20}/></button></div>
             <div className="grid grid-cols-1 gap-4 max-h-[400px] overflow-y-auto pr-2">
               {myGarage.map(cam => {
                 const isBusy = activeCameras.some(ac => ac.camera_id === cam.id);
-                return (
-                  <button key={cam.id} disabled={isBusy} onClick={() => handleCheckIn(cam.id)} className={`flex items-center justify-between p-6 rounded-[2.5rem] border-2 transition-all ${isBusy ? 'opacity-30 grayscale cursor-not-allowed border-transparent bg-zinc-50/50' : 'bg-zinc-50 dark:bg-zinc-900 border-transparent hover:border-blue-500 hover:bg-white active:scale-[0.98]'}`}>
-                    <div className="flex items-center gap-6 text-left">
-                      <div className="w-14 h-14 bg-white dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-zinc-300 border border-zinc-100 dark:border-zinc-700"><Camera size={24} /></div>
-                      <div>
-                        <p className="font-medium text-xl leading-none mb-1">{cam.nickname}</p>
-                        <p className="text-[10px] text-zinc-500 uppercase font-semibold tracking-widest">{cam.brand} {cam.model}</p>
-                      </div>
-                    </div>
-                    <div className={`px-6 py-2 rounded-xl text-[10px] font-semibold uppercase tracking-widest ${isBusy ? 'bg-zinc-200 text-zinc-500' : 'bg-blue-100 text-blue-600'}`}>
-                      {isBusy ? 'In Use' : 'Connect'}
-                    </div>
-                  </button>
-                );
+                return (<button key={cam.id} disabled={isBusy} onClick={() => handleCheckIn(cam.id)} className={`flex items-center justify-between p-6 rounded-[2.5rem] border-2 transition-all ${isBusy ? 'opacity-30 grayscale cursor-not-allowed border-transparent bg-zinc-50/50' : 'bg-zinc-50 dark:bg-zinc-900 border-transparent hover:border-blue-500 hover:bg-white active:scale-[0.98]'}`}><div className="flex items-center gap-6 text-left"><div className="w-14 h-14 bg-white dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-zinc-300 border border-zinc-100 dark:border-zinc-700"><Camera size={24} /></div><div><p className="font-medium text-xl leading-none mb-1">{cam.nickname}</p><p className="text-[10px] text-zinc-500 uppercase font-semibold tracking-widest">{cam.brand} {cam.model}</p></div></div><div className={`px-6 py-2 rounded-xl text-[10px] font-semibold uppercase tracking-widest ${isBusy ? 'bg-zinc-200 text-zinc-500' : 'bg-blue-100 text-blue-600'}`}>{isBusy ? 'In Use' : 'Connect'}</div></button>);
               })}
             </div>
           </div>
