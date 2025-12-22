@@ -13,7 +13,7 @@ import QRModal from '@/src/components/QRModal';
 /**
  * AI FACE-GRID: EVENT GALLERY PAGE
  * Version: 5.7 (Full Real-time Subscription - Full Code)
- * แบรนด์: WSWSS
+ * แบรนด์: Rooplife
  */
 
 // ... (ส่วนการ import คงเดิม)
@@ -98,7 +98,7 @@ export default function EventGallery() {
         title: data.title,
         start: data.start_time ? new Date(data.start_time) : null,
         joinCode: data.join_code, // ✅ เก็บลง state
-        ownerName: data.users?.full_name || 'WSWSS'
+        ownerName: data.users?.full_name || 'RoopLife'
       });
     }
   }
