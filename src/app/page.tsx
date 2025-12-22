@@ -54,6 +54,19 @@ export default async function LandingPage() {
 
       {/* --- Hero Section --- */}
       <section className="relative pt-36 md:pt-48 pb-20 px-6 z-10 text-center">
+        {/* CSS Animation สำหรับการเลื่อนของสีพาสเทล */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes text-gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+          }
+          .animate-text-gradient {
+            background-size: 200% auto;
+            animation: text-gradient 6s linear infinite;
+          }
+        `}} />
+
         <div className="max-w-4xl mx-auto space-y-10">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/80 backdrop-blur-md text-zinc-400 rounded-full border border-zinc-200 shadow-sm cursor-default">
             <Sparkles size={14} className="text-blue-500 animate-pulse" />
@@ -61,9 +74,11 @@ export default async function LandingPage() {
           </div>
           
           <div className="space-y-6">
-            <h1 className="text-4xl md:text-6xl font-medium tracking-tight leading-[1.1] text-zinc-950 px-4">
-              ยกระดับการจัดการภาพถ่าย <br />
-              <span className="text-zinc-400">ด้วยพลังปัญญาประดิษฐ์</span>
+            <h1 className="text-4xl md:text-7xl font-black tracking-tight leading-[1.1] px-4">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-pink-400 via-blue-400 via-emerald-400 via-amber-400 to-pink-400 animate-text-gradient">
+                ยกระดับการจัดการภาพถ่าย <br />
+                ด้วยพลังปัญญาประดิษฐ์
+              </span>
             </h1>
             
             <p className="max-w-xl mx-auto text-sm md:text-lg text-zinc-500 font-medium leading-relaxed italic opacity-80 px-6">

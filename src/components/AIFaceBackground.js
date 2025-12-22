@@ -32,54 +32,48 @@ export default function AIFaceBackground() {
     
     resize();
 
-    // กำหนดชุดสีพาสเทล: ชมพู, ฟ้า, เหลือง, เขียว และม่วงจางๆ
     const pastelPalette = [
-      'rgba(244, 114, 182, 0.12)', // Pink (ชมพู)
-      'rgba(59, 130, 246, 0.08)',  // Blue (ฟ้า)
-      'rgba(251, 191, 36, 0.07)',  // Yellow (เหลือง)
-      'rgba(34, 197, 94, 0.08)',   // Green (เขียว)
-      'rgba(139, 92, 246, 0.07)',  // Purple (ม่วง - ช่วยให้การไล่สีดูนุ่มนวลขึ้น)
+      'rgba(244, 114, 182, 0.18)', // Pink
+      'rgba(59, 130, 246, 0.15)',  // Blue
+      'rgba(251, 191, 36, 0.12)',  // Yellow
+      'rgba(34, 197, 94, 0.15)',   // Green
+      'rgba(139, 92, 246, 0.12)',  // Purple
     ];
 
-    // สร้างกลุ่มเส้นสาย (เพิ่มจำนวนเส้นเป็น 50 เพื่อความละเอียด)
-    const lines = Array.from({ length: 50 }).map((_, i) => ({
-      y: (canvas.height / 50) * i,
-      baseAmplitude: 15 + Math.random() * 35,
+    const lines = Array.from({ length: 100 }).map((_, i) => ({
+      y: (canvas.height / 100) * i,
+      baseAmplitude: 10 + Math.random() * 25,
       freq1: 0.001 + Math.random() * 0.001,
       freq2: 0.002 + Math.random() * 0.002,
       speed1: 0.0004 + Math.random() * 0.0006,
       speed2: 0.0008 + Math.random() * 0.001,
       phase: Math.random() * Math.PI,
-      // สลับสีพาสเทลตามลำดับเส้น
       color: pastelPalette[i % pastelPalette.length]
     }));
 
     const draw = (time) => {
-      // พื้นหลังสีขาวนวลสะอาดตา
       ctx.fillStyle = '#fafafa';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      ctx.lineWidth = 1.2;
+      ctx.lineWidth = 1.0;
       lines.forEach((line) => {
         ctx.beginPath();
         ctx.strokeStyle = line.color;
         
-        for (let x = 0; x < canvas.width; x += 6) {
-          // คำนวณคลื่นแบบพริ้วไหว
+        for (let x = 0; x < canvas.width; x += 10) {
           const wave1 = Math.sin(x * line.freq1 + time * line.speed1 + line.phase);
           const wave2 = Math.sin(x * line.freq2 - time * line.speed2 + line.phase);
           
           let noise = (wave1 + wave2 * 0.5) * line.baseAmplitude;
           
-          // ปฏิกิริยากับการเลื่อนเมาส์ (Liquid Displacement)
           if (mouse.current.active) {
             const dx = x - mouse.current.x;
             const dy = line.y - mouse.current.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
             
-            if (dist < 300) {
-              const force = Math.pow(1 - dist / 300, 2);
-              noise += (mouse.current.y - line.y) * force * 0.6;
+            if (dist < 250) {
+              const force = Math.pow(1 - dist / 250, 2);
+              noise += (mouse.current.y - line.y) * force * 0.5;
             }
           }
 
@@ -90,14 +84,31 @@ export default function AIFaceBackground() {
         ctx.stroke();
       });
 
-      // รัศมีเรืองแสงจางๆ รอบจุดสัมผัส
+      // --- ส่วนที่ปรับลดพื้นที่เฟสบางลง 20% ---
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      // ลดรัศมีการเฟสลงจาก 0.7 เหลือ 0.56 (ลดลง 20%)
+      const maskRadius = Math.max(canvas.width, canvas.height) * 0.56; 
+      
+      const maskGradient = ctx.createRadialGradient(
+        centerX, centerY, 0, 
+        centerX, centerY, maskRadius
+      );
+      
+      maskGradient.addColorStop(0, 'rgba(250, 250, 250, 0.98)');   
+      maskGradient.addColorStop(0.4, 'rgba(250, 250, 250, 0.90)'); 
+      maskGradient.addColorStop(0.7, 'rgba(250, 250, 250, 0.40)'); 
+      maskGradient.addColorStop(1, 'rgba(250, 250, 250, 0)');      
+      
+      ctx.fillStyle = maskGradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
       if (mouse.current.active) {
         const glow = ctx.createRadialGradient(
           mouse.current.x, mouse.current.y, 0, 
           mouse.current.x, mouse.current.y, 250
         );
         glow.addColorStop(0, 'rgba(59, 130, 246, 0.04)');
-        glow.addColorStop(0.5, 'rgba(244, 114, 182, 0.02)');
         glow.addColorStop(1, 'transparent');
         ctx.fillStyle = glow;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
