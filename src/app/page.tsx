@@ -46,7 +46,7 @@ export default async function LandingPage() {
             </div>
           </div>
           <div className="flex items-center gap-6 md:gap-8">
-            <Link href="/login" className="text-[10px] md:text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">Sign In</Link>
+            <Link href="/login" className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">Sign In</Link>
             <Link href="/login" className="px-5 py-2 md:px-6 md:py-2.5 bg-zinc-950 text-white rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-black/5">Get Started</Link>
           </div>
         </div>
@@ -94,8 +94,8 @@ export default async function LandingPage() {
           </div>
           <div className="space-y-3">
             <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-green-600 mx-auto shadow-sm border border-zinc-100"><Settings size={24} /></div>
-            <h3 className="text-base font-bold tracking-tight">One-time FTP</h3>
-            <p className="text-zinc-500 text-[11px] leading-relaxed max-w-[200px] mx-auto">ตั้งค่า FTP ครั้งเดียวใน Garage ใช้งานได้ทุกงาน ไม่ต้องตั้งค่าใหม่</p>
+            <h3 className="text-base font-bold tracking-tight">One-time FTP/FTPS</h3>
+            <p className="text-zinc-500 text-[11px] leading-relaxed max-w-[200px] mx-auto">ตั้งค่า FTP/FTPS ครั้งเดียวใน Garage ใช้งานได้ทุกงาน ไม่ต้องตั้งค่าใหม่</p>
           </div>
           <div className="space-y-3">
             <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-orange-500 mx-auto shadow-sm border border-zinc-100"><Users size={24} /></div>
@@ -110,7 +110,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* --- Feature Focus --- */}
+      {/* --- Key Feature Focus --- */}
       <section className="relative z-10 py-28 px-6">
         <div className="max-w-5xl mx-auto space-y-24">
           <div className="flex flex-col md:flex-row items-center gap-12 md:gap-20">
@@ -131,7 +131,6 @@ export default async function LandingPage() {
             <div className="flex-1 w-full aspect-video bg-zinc-950 rounded-[2.5rem] shadow-2xl flex items-center justify-center relative overflow-hidden group border border-white/10">
                <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/10 to-purple-500/10" />
                <Users size={60} className="text-zinc-800 opacity-20" />
-               {/* นำกล่อง Face Matching Active ออกแล้ว */}
             </div>
           </div>
         </div>
