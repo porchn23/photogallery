@@ -8,7 +8,7 @@ import {
   Calendar, Copy, Edit2, Loader2, X, UserCheck, Shield, Clock, Crown,
   Upload, Sliders, CheckCircle2, LayoutGrid, MousePointer2, Settings2,
   Settings, Save, RefreshCw, Focus, Maximize2, Crosshair, Monitor,
-  Power, Layers, Check, Circle
+  Power, Layers, Check, Circle, Sparkles
 } from 'lucide-react';
 import { formatThaiDate, toLocalISOString } from '@/src/lib/utils';
 
@@ -33,6 +33,8 @@ export default function EventManagement() {
   // --- Watermark States ---
   const [watermarkEnabled, setWatermarkEnabled] = useState(false);
   const [watermarkOpacity, setWatermarkOpacity] = useState(0.5);
+  const [watermarkSize, setWatermarkSize] = useState(300);
+  const [isResizing, setIsResizing] = useState(false);
   const [watermarkPosition, setWatermarkPosition] = useState('southeast');
   const [isUploading, setIsUploading] = useState(false);
   const [watermarkUrl, setWatermarkUrl] = useState(null);
@@ -52,6 +54,7 @@ export default function EventManagement() {
     if (event) {
       setWatermarkEnabled(event.watermark_enabled || false);
       setWatermarkOpacity(event.watermark_opacity ?? 0.5);
+      setWatermarkSize(event.watermark_size ?? 300);
       setWatermarkPosition(event.watermark_position || 'southeast');
       const { data: { publicUrl } } = supabase.storage.from('raw').getPublicUrl(`${event.id}/watermark.png`);
       const version = event.watermark_version || new Date().getTime();
@@ -106,26 +109,6 @@ export default function EventManagement() {
     } catch (err) { router.push('/dashboard'); } finally { setLoading(false); }
   }
 
-  const getEventDates = () => {
-    if (!event?.created_at) return { start: null, expiry: null, isExpired: false, daysRemaining: 0 };
-    const createdAt = new Date(event.created_at);
-    const expiry = new Date(createdAt.getTime() + ((event.storage_days || 2) * 24 * 60 * 60 * 1000));
-    const now = new Date();
-    const daysRemaining = Math.max(0, Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-    return { start: new Date(event.start_time), expiry, isExpired: now > expiry, daysRemaining };
-  };
-
-  const { expiry, isExpired, daysRemaining } = getEventDates();
-  const getEventStatus = (startTimeStr) => {
-    if (!startTimeStr) return { label: 'ยังไม่เริ่ม', color: 'text-amber-500', dot: 'bg-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/10' };
-    const now = new Date();
-    const start = new Date(startTimeStr);
-    if (isExpired) return { label: 'สิ้นสุด/หมดอายุ', color: 'text-red-500', dot: 'bg-red-500', bg: 'bg-red-50 dark:bg-red-900/10' };
-    if (now < start) return { label: 'ยังไม่เริ่ม', color: 'text-amber-500', dot: 'bg-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/10' };
-    return { label: 'Active', color: 'text-green-500', dot: 'bg-green-500 animate-pulse', bg: 'bg-green-50 dark:bg-green-900/10' };
-  };
-  const status = getEventStatus(event?.start_time);
-
   // --- Watermark Handlers ---
   const handleWatermarkUpload = async (e) => {
     const file = e.target.files[0];
@@ -144,8 +127,11 @@ export default function EventManagement() {
   const handleSaveWatermarkSettings = async () => {
     try {
       const { error } = await supabase.from('events').update({ 
-        watermark_enabled: watermarkEnabled, watermark_opacity: watermarkOpacity,
-        watermark_position: watermarkPosition, watermark_version: Math.floor(Date.now() / 1000)
+        watermark_enabled: watermarkEnabled, 
+        watermark_opacity: watermarkOpacity,
+        watermark_size: watermarkSize,
+        watermark_position: watermarkPosition, 
+        watermark_version: Math.floor(Date.now() / 1000)
       }).eq('id', event.id);
       if (error) throw error;
       alert('บันทึกการตั้งค่าลายน้ำเรียบร้อยแล้ว');
@@ -154,14 +140,42 @@ export default function EventManagement() {
   };
 
   const getPreviewPositionStyles = () => {
-    const offset = '24px';
+    // หากกำลังปรับขนาด ให้แสดงตรงกลางช่องเสมอ
+    if (isResizing) {
+        return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)', bottom: 'auto', right: 'auto' };
+    }
+
+    const offset = '4%';
     switch(watermarkPosition) {
       case 'northwest': return { top: offset, left: offset, bottom: 'auto', right: 'auto', transform: 'none' };
       case 'northeast': return { top: offset, right: offset, bottom: 'auto', left: 'auto', transform: 'none' };
       case 'center': return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)', bottom: 'auto', right: 'auto' };
-      case 'southwest': return { bottom: '24px', left: offset, top: 'auto', right: 'auto', transform: 'none' };
-      case 'southeast': return { bottom: '24px', right: offset, top: 'auto', left: 'auto', transform: 'none' };
-      default: return { bottom: '24px', right: offset, top: 'auto', left: 'auto', transform: 'none' };
+      case 'southwest': return { bottom: offset, left: offset, top: 'auto', right: 'auto', transform: 'none' };
+      case 'southeast': return { bottom: offset, right: offset, top: 'auto', left: 'auto', transform: 'none' };
+      default: return { bottom: offset, right: offset, top: 'auto', left: 'auto', transform: 'none' };
+    }
+  };
+
+  // --- AI Beauty Handler ---
+  const handleToggleAIBeauty = async (acId, currentStatus) => {
+    if (!isOwner || isExpired) return;
+    const newStatus = !currentStatus;
+
+    setActiveCameras(prev => prev.map(ac => 
+      ac.id === acId ? { ...ac, ai_beauty_enabled: newStatus } : ac
+    ));
+
+    try {
+      const { error } = await supabase
+        .from('event_cameras')
+        .update({ ai_beauty_enabled: newStatus })
+        .eq('id', acId);
+      if (error) throw error;
+    } catch (err) { 
+      setActiveCameras(prev => prev.map(ac => 
+        ac.id === acId ? { ...ac, ai_beauty_enabled: currentStatus } : ac
+      ));
+      alert('AI Beauty Error: ' + err.message); 
     }
   };
 
@@ -215,6 +229,26 @@ export default function EventManagement() {
       fetchData();
     } catch (err) { alert(err.message); }
   };
+
+  const getEventDates = () => {
+    if (!event?.created_at) return { start: null, expiry: null, isExpired: false, daysRemaining: 0 };
+    const createdAt = new Date(event.created_at);
+    const expiry = new Date(createdAt.getTime() + ((event.storage_days || 2) * 24 * 60 * 60 * 1000));
+    const now = new Date();
+    const daysRemaining = Math.max(0, Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+    return { start: new Date(event.start_time), expiry, isExpired: now > expiry, daysRemaining };
+  };
+
+  const { expiry, isExpired, daysRemaining } = getEventDates();
+  const getEventStatus = (startTimeStr) => {
+    if (!startTimeStr) return { label: 'ยังไม่เริ่ม', color: 'text-amber-500', dot: 'bg-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/10' };
+    const now = new Date();
+    const start = new Date(startTimeStr);
+    if (isExpired) return { label: 'สิ้นสุด/หมดอายุ', color: 'text-red-500', dot: 'bg-red-500', bg: 'bg-red-50 dark:bg-red-900/10' };
+    if (now < start) return { label: 'ยังไม่เริ่ม', color: 'text-amber-500', dot: 'bg-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/10' };
+    return { label: 'Active', color: 'text-green-500', dot: 'bg-green-500 animate-pulse', bg: 'bg-green-50 dark:bg-green-900/10' };
+  };
+  const status = getEventStatus(event?.start_time);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-zinc-400 text-xs animate-pulse"><Loader2 className="animate-spin mr-2" /> Loading Command Center...</div>;
 
@@ -275,16 +309,55 @@ export default function EventManagement() {
           </div>
         </section>
 
-        {/* 2. Camera Slots Section */}
+        {/* 2. Camera Slots Section with AI Beauty */}
         <section className="space-y-6">
           <div className="flex items-center justify-between px-2"><h2 className="text-lg font-medium tracking-tight flex items-center gap-2"><Camera size={20} className="text-blue-500" /> Camera Slots</h2><span className="text-[10px] font-medium text-zinc-400 uppercase tracking-widest">{activeCameras.length} / {event?.max_cameras} In Use</span></div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {activeCameras.map(ac => (
-              <div key={ac.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-3xl shadow-sm flex flex-col justify-between group">
-                <div className="flex justify-between items-start mb-6"><div className="w-10 h-10 bg-zinc-50 dark:bg-zinc-800 rounded-xl flex items-center justify-center text-zinc-400 group-hover:text-blue-500 transition-colors"><Camera size={20} /></div><span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" /></div>
-                <div className="space-y-1 mb-6"><h3 className="text-base font-medium truncate leading-tight">{ac.cameras?.nickname}</h3><p className="text-[10px] text-zinc-400 uppercase tracking-wider">{ac.cameras?.brand} {ac.cameras?.model}</p></div>
+              <div key={ac.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-3xl shadow-sm flex flex-col justify-between group relative">
+                <div className="flex justify-between items-start mb-6">
+                  <div className="w-10 h-10 bg-zinc-50 dark:bg-zinc-800 rounded-xl flex items-center justify-center text-zinc-400 group-hover:text-blue-500 transition-colors">
+                    <Camera size={20} />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {isOwner && (
+                      <button 
+                        onClick={() => handleToggleAIBeauty(ac.id, ac.ai_beauty_enabled)}
+                        className={`group/ai relative flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all border ${
+                          ac.ai_beauty_enabled 
+                            ? 'bg-pink-500 text-white border-pink-400 shadow-lg shadow-pink-500/20' 
+                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 border-zinc-200 dark:border-zinc-700'
+                        }`}
+                        title={ac.ai_beauty_enabled ? "ปิด AI Beauty" : "เปิด AI Beauty"}
+                      >
+                        <Sparkles size={12} fill={ac.ai_beauty_enabled ? "currentColor" : "none"} className={ac.ai_beauty_enabled ? 'animate-pulse' : ''} />
+                        <span className="text-[9px] font-black uppercase tracking-widest leading-none">
+                          {ac.ai_beauty_enabled ? 'AI ON' : 'AI OFF'}
+                        </span>
+                      </button>
+                    )}
+                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                  </div>
+                </div>
+                <div className="space-y-1 mb-6">
+                  <h3 className="text-base font-medium truncate leading-tight">{ac.cameras?.nickname}</h3>
+                  <p className="text-[10px] text-zinc-400 uppercase tracking-wider">{ac.cameras?.brand} {ac.cameras?.model}</p>
+                  {ac.ai_beauty_enabled && (
+                    <div className="mt-3 py-2 px-3 bg-pink-50 dark:bg-pink-900/10 rounded-xl border border-pink-100 dark:border-pink-900/30">
+                      <p className="text-[9px] text-pink-600 dark:text-pink-400 font-bold flex items-center gap-1.5">
+                        <Sparkles size={10} fill="currentColor" />
+                        มีค่าใช้จ่าย รูปละ 1.2 บาท/รูป
+                      </p>
+                    </div>
+                  )}
+                </div>
                 <div className="pt-4 border-t border-zinc-50 dark:border-zinc-800/50 flex items-center justify-between">
-                  <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[9px] text-zinc-400">{ac.users?.avatar_url ? <img src={ac.users.avatar_url} className="rounded-full" /> : ac.users?.full_name?.charAt(0)}</div><span className="text-[9px] text-zinc-400 uppercase">{ac.users?.full_name?.split(' ')[0]}</span></div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[9px] text-zinc-400 overflow-hidden">
+                      {ac.users?.avatar_url ? <img src={ac.users.avatar_url} /> : ac.users?.full_name?.charAt(0)}
+                    </div>
+                    <span className="text-[9px] text-zinc-400 uppercase">{ac.users?.full_name?.split(' ')[0]}</span>
+                  </div>
                   {(isOwner || ac.user_id === user.id) && (<button disabled={isExpired} onClick={() => handleDisconnect(ac)} className="text-[10px] font-medium text-zinc-400 hover:text-red-500 transition-colors">Exit</button>)}
                 </div>
               </div>
@@ -298,10 +371,9 @@ export default function EventManagement() {
           </div>
         </section>
 
-        {/* 3. Watermark Engine: Panoramic Ultra-Compact with Header */}
+        {/* 3. Watermark Engine: panoramic Studio Dock */}
         {isOwner && (
           <section className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] overflow-hidden shadow-sm group/engine">
-            {/* Unified Header */}
             <div className="px-6 py-5 border-b border-zinc-50 dark:border-zinc-800 flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-bold tracking-tight">Watermark Settings</h2>
@@ -322,40 +394,45 @@ export default function EventManagement() {
               </button>
             </div>
 
-            {/* Panoramic Preview Frame */}
             <div className="relative aspect-[4/1] w-full bg-zinc-950 overflow-hidden flex items-center justify-center border-b border-zinc-100 dark:border-zinc-800">
               <div className="absolute inset-0 opacity-10">
                 <img src="https://images.unsplash.com/photo-1471341971476-3446ee03bd71?q=80&w=2000&auto=format&fit=crop" className="w-full h-full object-cover grayscale" />
               </div>
 
-              {/* Direct Position Hits */}
+              {/* Direct Position Hits: ปรับให้ตรงกับตำแหน่งลายน้ำจริงแบบ % */}
               <div className="absolute inset-0 z-30">
                  {[
-                   { id: 'northwest', style: { top: '16px', left: '16px' } },
-                   { id: 'northeast', style: { top: '16px', right: '16px' } },
-                   { id: 'southwest', style: { bottom: '16px', left: '16px' } },
-                   { id: 'southeast', style: { bottom: '16px', right: '16px' } },
+                   { id: 'northwest', style: { top: '4%', left: '4%' } },
+                   { id: 'northeast', style: { top: '4%', right: '4%' } },
+                   { id: 'southwest', style: { bottom: '4%', left: '4%' } },
+                   { id: 'southeast', style: { bottom: '4%', right: '4%' } },
                    { id: 'center', style: { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' } },
                  ].map((pos) => (
                    <button 
                     key={pos.id} 
                     onClick={() => setWatermarkPosition(pos.id)}
                     style={pos.style}
-                    className={`absolute w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-300 ${watermarkPosition === pos.id ? 'bg-blue-600 border-blue-600 scale-110 shadow-lg' : 'bg-black/20 border-white/10 hover:border-white/40'}`}
+                    className={`absolute w-10 h-10 rounded-full border flex items-center justify-center transition-all ${
+                      watermarkPosition === pos.id ? 'bg-blue-600 border-blue-400 scale-110 shadow-lg' : 'bg-black/20 border-white/10 hover:border-white/40'
+                    }`}
                    >
-                      <Circle size={watermarkPosition === pos.id ? 6 : 3} fill="currentColor" className={watermarkPosition === pos.id ? 'text-white' : 'text-white/30'} />
+                      <Circle size={watermarkPosition === pos.id ? 8 : 4} fill="currentColor" className={watermarkPosition === pos.id ? 'text-white' : 'text-white/30'} />
                    </button>
                  ))}
               </div>
               
-              {/* Watermark Rendering - Instant Move + Fade */}
               <div className="absolute inset-0 pointer-events-none z-20">
                 <div 
-                  className="absolute transition-opacity duration-300 ease-out" 
+                  className="absolute" 
                   style={{ ...getPreviewPositionStyles(), opacity: watermarkOpacity }}
                 >
                   {watermarkUrl ? (
-                    <img src={watermarkUrl} alt="Watermark" className="max-w-[80px] md:max-w-[110px] h-auto object-contain brightness-110 drop-shadow-xl" />
+                    <img 
+                      src={watermarkUrl} 
+                      alt="Watermark" 
+                      className={`h-auto object-contain brightness-110 drop-shadow-2xl ${isResizing ? 'ring-2 ring-blue-500/50' : ''}`} 
+                      style={{ width: isResizing ? `${watermarkSize}px` : '200px' }}
+                    />
                   ) : (
                     <div className="text-[8px] text-white/5 font-black uppercase tracking-[0.8em]">Empty Asset</div>
                   )}
@@ -363,7 +440,6 @@ export default function EventManagement() {
               </div>
             </div>
 
-            {/* Compact Control Dock */}
             <div className="px-6 py-4 flex items-center justify-between gap-10 bg-white dark:bg-zinc-900/50">
                <div className="flex items-center gap-6">
                   <label className="flex items-center gap-3 cursor-pointer group">
@@ -378,27 +454,39 @@ export default function EventManagement() {
                   </label>
                </div>
 
-               {/* Opacity Control - Larger & Clearer */}
-               <div className="flex-1 flex flex-col gap-2 max-w-[300px]">
+               <div className="flex-1 flex flex-col gap-2 max-w-[200px]">
+                  <div className="flex justify-between items-center px-1">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Real Size (Px)</span>
+                    <span className="text-sm font-mono font-black text-blue-600 leading-none">{watermarkSize}px</span>
+                  </div>
+                  <div className="relative h-2.5 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden border border-zinc-50 dark:border-zinc-800 shadow-inner">
+                    <div className="absolute h-full bg-blue-600 rounded-full" style={{ width: `${((watermarkSize - 100) / 500) * 100}%` }} />
+                    <input 
+                      type="range" min="100" max="600" step="1" 
+                      value={watermarkSize} 
+                      onChange={e => setWatermarkSize(parseInt(e.target.value))}
+                      onMouseDown={() => setIsResizing(true)}
+                      onMouseUp={() => setIsResizing(false)}
+                      onMouseLeave={() => setIsResizing(false)}
+                      onTouchStart={() => setIsResizing(true)}
+                      onTouchEnd={() => setIsResizing(false)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                    />
+                  </div>
+               </div>
+
+               <div className="flex-1 flex flex-col gap-2 max-w-[200px]">
                   <div className="flex justify-between items-center px-1">
                     <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Transparency</span>
                     <span className="text-sm font-mono font-black text-blue-600 leading-none">{Math.round(watermarkOpacity * 100)}%</span>
                   </div>
                   <div className="relative h-2.5 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden border border-zinc-50 dark:border-zinc-800 shadow-inner">
-                    <div className="absolute h-full bg-blue-600 rounded-full transition-all duration-300" style={{ width: `${watermarkOpacity * 100}%` }} />
-                    <input 
-                      type="range" min="0" max="1" step="0.05" 
-                      value={watermarkOpacity} 
-                      onChange={e => setWatermarkOpacity(parseFloat(e.target.value))}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                    />
+                    <div className="absolute h-full bg-blue-600 rounded-full" style={{ width: `${watermarkOpacity * 100}%` }} />
+                    <input type="range" min="0" max="1" step="0.05" value={watermarkOpacity} onChange={e => setWatermarkOpacity(parseFloat(e.target.value))} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
                   </div>
                </div>
 
-               <button 
-                 onClick={handleSaveWatermarkSettings}
-                 className="px-8 py-3 bg-zinc-950 dark:bg-zinc-100 text-white dark:text-black font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] hover:bg-blue-600 hover:text-white transition-all active:scale-95 flex items-center gap-3 shadow-xl shadow-zinc-200 dark:shadow-none"
-               >
+               <button onClick={handleSaveWatermarkSettings} className="px-8 py-3 bg-zinc-950 dark:bg-zinc-100 text-white dark:text-black font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] hover:bg-blue-600 hover:text-white transition-all active:scale-95 flex items-center gap-3 shadow-xl shadow-zinc-200 dark:shadow-none">
                  <Save size={14} /> Commit Changes
                </button>
             </div>
