@@ -6,7 +6,9 @@ import Header from '@/src/components/Header';
 import { 
   Camera, Plus, Zap, Users, ShieldAlert, Image as ImageIcon, 
   Calendar, Copy, Edit2, Loader2, X, UserCheck, Shield, Clock, Crown,
-  Upload, Sliders, CheckCircle2
+  Upload, Sliders, CheckCircle2, LayoutGrid, MousePointer2, Settings2,
+  Settings, Save, RefreshCw, Focus, Maximize2, Crosshair, Monitor,
+  Power, Layers, Check, Circle
 } from 'lucide-react';
 import { formatThaiDate, toLocalISOString } from '@/src/lib/utils';
 
@@ -31,6 +33,7 @@ export default function EventManagement() {
   // --- Watermark States ---
   const [watermarkEnabled, setWatermarkEnabled] = useState(false);
   const [watermarkOpacity, setWatermarkOpacity] = useState(0.5);
+  const [watermarkPosition, setWatermarkPosition] = useState('southeast');
   const [isUploading, setIsUploading] = useState(false);
   const [watermarkUrl, setWatermarkUrl] = useState(null);
 
@@ -40,23 +43,19 @@ export default function EventManagement() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'event_cameras' }, () => fetchData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'event_members' }, () => fetchData())
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'photos' }, () => fetchData())
-      // เพิ่มการติดตามความเปลี่ยนแปลงของตาราง events เพื่อ Update UI เมื่อมีการเปลี่ยนชื่อหรือตั้งค่า
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'events', filter: `id=eq.${eventId}` }, () => fetchData())
       .subscribe();
     return () => supabase.removeChannel(channel);
   }, [eventId]);
 
-  // Sync watermark states เมื่อข้อมูล event เปลี่ยน
   useEffect(() => {
     if (event) {
       setWatermarkEnabled(event.watermark_enabled || false);
       setWatermarkOpacity(event.watermark_opacity ?? 0.5);
-      
-      // ดึง Preview URL จาก Storage
-      const { data: { publicUrl } } = supabase.storage
-        .from('raw')
-        .getPublicUrl(`${event.id}/watermark.png`);
-      setWatermarkUrl(`${publicUrl}?t=${new Date().getTime()}`); // Cache busting ด้วย timestamp
+      setWatermarkPosition(event.watermark_position || 'southeast');
+      const { data: { publicUrl } } = supabase.storage.from('raw').getPublicUrl(`${event.id}/watermark.png`);
+      const version = event.watermark_version || new Date().getTime();
+      setWatermarkUrl(`${publicUrl}?v=${version}`); 
     }
   }, [event]);
 
@@ -80,27 +79,16 @@ export default function EventManagement() {
         supabase.from('photos').select('id', { count: 'exact', head: true }).eq('event_id', realId)
       ]);
 
-      if (!eventRes.data) {
-        alert('ไม่พบข้อมูลงาน');
-        router.push('/dashboard');
-        return;
-      }
-
+      if (!eventRes.data) { router.push('/dashboard'); return; }
       const eventData = eventRes.data;
       const membersData = membersRes.data || [];
       setPhotoCount(photoRes.count || 0);
 
       const ownerCheck = eventData.owner_id === authUser.id;
       const memberCheck = membersData.some(m => m.user_id === authUser.id);
-
-      if (!ownerCheck && !memberCheck) {
-        alert('คุณไม่มีสิทธิ์เข้าถึงงานนี้');
-        router.push('/dashboard');
-        return;
-      }
+      if (!ownerCheck && !memberCheck) { router.push('/dashboard'); return; }
 
       setIsOwner(ownerCheck);
-
       const [garageRes, activeCamsRes, historyCamsRes] = await Promise.all([
         supabase.from('cameras').select('*').eq('owner_id', authUser.id),
         supabase.from('event_cameras').select('*, cameras(*), users(*)').eq('event_id', realId).eq('status', 'active'),
@@ -115,13 +103,7 @@ export default function EventManagement() {
       setCameraHistory(historyCamsRes.data || []);
       setEditTitle(eventData.title);
       setEditStartTime(toLocalISOString(eventData.start_time));
-
-    } catch (err) { 
-      console.error(err); 
-      router.push('/dashboard'); 
-    } finally { 
-      setLoading(false); 
-    }
+    } catch (err) { router.push('/dashboard'); } finally { setLoading(false); }
   }
 
   const getEventDates = () => {
@@ -134,7 +116,6 @@ export default function EventManagement() {
   };
 
   const { expiry, isExpired, daysRemaining } = getEventDates();
-
   const getEventStatus = (startTimeStr) => {
     if (!startTimeStr) return { label: 'ยังไม่เริ่ม', color: 'text-amber-500', dot: 'bg-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/10' };
     const now = new Date();
@@ -143,79 +124,56 @@ export default function EventManagement() {
     if (now < start) return { label: 'ยังไม่เริ่ม', color: 'text-amber-500', dot: 'bg-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/10' };
     return { label: 'Active', color: 'text-green-500', dot: 'bg-green-500 animate-pulse', bg: 'bg-green-50 dark:bg-green-900/10' };
   };
-
   const status = getEventStatus(event?.start_time);
 
   // --- Watermark Handlers ---
   const handleWatermarkUpload = async (e) => {
     const file = e.target.files[0];
-    if (!file) return;
-    if (file.type !== 'image/png') return alert('กรุณาอัปโหลดไฟล์ .png เท่านั้น');
-
+    if (!file || file.type !== 'image/png') return alert('กรุณาอัปโหลดไฟล์ .png เท่านั้น');
     try {
       setIsUploading(true);
-      const { error } = await supabase.storage
-        .from('raw')
-        .upload(`${event.id}/watermark.png`, file, { upsert: true, contentType: 'image/png' });
-
-      if (error) throw error;
-      
-      const { data: { publicUrl } } = supabase.storage
-        .from('raw')
-        .getPublicUrl(`${event.id}/watermark.png`);
-      setWatermarkUrl(`${publicUrl}?t=${new Date().getTime()}`);
+      const { error: uploadError } = await supabase.storage.from('raw').upload(`${event.id}/watermark.png`, file, { upsert: true, contentType: 'image/png' });
+      if (uploadError) throw uploadError;
+      const { error: dbError } = await supabase.from('events').update({ watermark_version: Math.floor(Date.now() / 1000) }).eq('id', event.id);
+      if (dbError) throw dbError;
       alert('อัปโหลดลายน้ำสำเร็จ');
-    } catch (err) {
-      alert('Upload Error: ' + err.message);
-    } finally {
-      setIsUploading(false);
-    }
+      fetchData();
+    } catch (err) { alert('Upload Error: ' + err.message); } finally { setIsUploading(false); }
   };
 
   const handleSaveWatermarkSettings = async () => {
     try {
-      const { error } = await supabase
-        .from('events')
-        .update({ watermark_enabled: watermarkEnabled, watermark_opacity: watermarkOpacity })
-        .eq('id', event.id);
-
+      const { error } = await supabase.from('events').update({ 
+        watermark_enabled: watermarkEnabled, watermark_opacity: watermarkOpacity,
+        watermark_position: watermarkPosition, watermark_version: Math.floor(Date.now() / 1000)
+      }).eq('id', event.id);
       if (error) throw error;
       alert('บันทึกการตั้งค่าลายน้ำเรียบร้อยแล้ว');
       fetchData();
-    } catch (err) {
-      alert('Error: ' + err.message);
+    } catch (err) { alert('Error: ' + err.message); }
+  };
+
+  const getPreviewPositionStyles = () => {
+    const offset = '24px';
+    switch(watermarkPosition) {
+      case 'northwest': return { top: offset, left: offset, bottom: 'auto', right: 'auto', transform: 'none' };
+      case 'northeast': return { top: offset, right: offset, bottom: 'auto', left: 'auto', transform: 'none' };
+      case 'center': return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)', bottom: 'auto', right: 'auto' };
+      case 'southwest': return { bottom: '24px', left: offset, top: 'auto', right: 'auto', transform: 'none' };
+      case 'southeast': return { bottom: '24px', right: offset, top: 'auto', left: 'auto', transform: 'none' };
+      default: return { bottom: '24px', right: offset, top: 'auto', left: 'auto', transform: 'none' };
     }
   };
 
-  // --- Standard Event Actions ---
   const handleCheckIn = async (camId) => {
     if (isExpired) return alert('งานหมดอายุแล้ว');
     try {
-      await supabase
-        .from('event_cameras')
-        .update({ status: 'inactive', last_seen: new Date().toISOString() })
-        .eq('camera_id', camId)
-        .eq('status', 'active');
-
-      const { error } = await supabase
-        .from('event_cameras')
-        .upsert({ 
-          event_id: event.id, 
-          camera_id: camId, 
-          user_id: user.id, 
-          status: 'active',
-          last_seen: new Date().toISOString()
-        }, { 
-          onConflict: 'event_id, camera_id'
-        });
-
+      await supabase.from('event_cameras').update({ status: 'inactive', last_seen: new Date().toISOString() }).eq('camera_id', camId).eq('status', 'active');
+      const { error } = await supabase.from('event_cameras').upsert({ event_id: event.id, camera_id: camId, user_id: user.id, status: 'active', last_seen: new Date().toISOString() }, { onConflict: 'event_id, camera_id' });
       if (error) throw error;
       setIsCheckInOpen(false);
       fetchData();
-    } catch (err) { 
-      console.error("Check-in Error:", err.message);
-      alert('เกิดข้อผิดพลาดในการเชื่อมต่อกล้อง: ' + err.message); 
-    }
+    } catch (err) { alert('เกิดข้อผิดพลาดในการเชื่อมต่อกล้อง: ' + err.message); }
   };
 
   const handleUpdateEvent = async (e) => {
@@ -229,9 +187,7 @@ export default function EventManagement() {
   };
 
   const handleAddSlot = async () => {
-    if (!isOwner) return;
-    if (isExpired) return alert('งานหมดอายุแล้ว');
-    if (!user || user.wallet_balance < 50) return alert('เงินไม่พอ');
+    if (!isOwner || isExpired || !user || user.wallet_balance < 50) return alert('เงินไม่พอหรือตรวจสอบสิทธิ์');
     if (!confirm('ซื้อ Slot เพิ่ม (50 THB)?')) return;
     try {
       await supabase.from('users').update({ wallet_balance: user.wallet_balance - 50 }).eq('id', user.id);
@@ -242,8 +198,7 @@ export default function EventManagement() {
   };
 
   const handleDisconnect = async (ac) => {
-    if (!isOwner && ac.user_id !== user.id) return alert('คุณไม่มีสิทธิ์นำกล้องคนอื่นออก');
-    if (isExpired) return alert('งานหมดอายุแล้ว');
+    if ((!isOwner && ac.user_id !== user.id) || isExpired) return alert('ไม่มีสิทธิ์หรือตรวจสอบสถานะงาน');
     if (confirm(`ยืนยันการนำกล้องออก?`)) {
       await supabase.from('event_cameras').update({ status: 'inactive', last_seen: new Date().toISOString() }).eq('id', ac.id);
       fetchData();
@@ -251,8 +206,7 @@ export default function EventManagement() {
   };
 
   const handleExtendStorage = async () => {
-    if (!isOwner) return;
-    if (!user || user.wallet_balance < 50) return alert('เงินไม่พอ');
+    if (!isOwner || !user || user.wallet_balance < 50) return alert('เงินไม่พอ');
     if (!confirm('ต่ออายุเพิ่ม 1 วัน (50 THB)?')) return;
     try {
       await supabase.from('users').update({ wallet_balance: user.wallet_balance - 50 }).eq('id', user.id);
@@ -344,89 +298,109 @@ export default function EventManagement() {
           </div>
         </section>
 
-        {/* 3. Watermark Settings Section (NEW) - เฉพาะเจ้าของงาน */}
+        {/* 3. Watermark Engine: Panoramic Ultra-Compact with Header */}
         {isOwner && (
-          <section className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] p-8 md:p-10 shadow-sm">
-            <div className="flex items-center justify-between mb-8">
-              <div className="space-y-1">
-                <h2 className="text-xl font-medium flex items-center gap-2">
-                  <ImageIcon size={20} className="text-blue-500" /> 
-                  Watermark Settings
-                </h2>
-                <p className="text-xs text-zinc-400 font-medium uppercase tracking-wider">จัดการลายน้ำสำหรับรูปภาพ RAW</p>
+          <section className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] overflow-hidden shadow-sm group/engine">
+            {/* Unified Header */}
+            <div className="px-6 py-5 border-b border-zinc-50 dark:border-zinc-800 flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-bold tracking-tight">Watermark Settings</h2>
+                <p className="text-[10px] text-zinc-400 font-medium">จัดการลายน้ำสำหรับรูปภาพ RAW</p>
               </div>
-              
               <button 
                 onClick={() => setWatermarkEnabled(!watermarkEnabled)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${watermarkEnabled ? 'bg-blue-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all border ${
+                  watermarkEnabled 
+                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-800 shadow-sm' 
+                    : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-400 border-zinc-100 dark:border-zinc-700'
+                }`}
               >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${watermarkEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                <Power size={12} fill={watermarkEnabled ? "currentColor" : "none"} />
+                <span className="text-[10px] font-black uppercase tracking-widest">
+                  {watermarkEnabled ? 'Active' : 'Disabled'}
+                </span>
               </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-              <div className="space-y-6">
-                <div className="relative aspect-video rounded-3xl bg-zinc-50 dark:bg-zinc-800/50 border-2 border-dashed border-zinc-200 dark:border-zinc-700 flex items-center justify-center overflow-hidden group">
+            {/* Panoramic Preview Frame */}
+            <div className="relative aspect-[4/1] w-full bg-zinc-950 overflow-hidden flex items-center justify-center border-b border-zinc-100 dark:border-zinc-800">
+              <div className="absolute inset-0 opacity-10">
+                <img src="https://images.unsplash.com/photo-1471341971476-3446ee03bd71?q=80&w=2000&auto=format&fit=crop" className="w-full h-full object-cover grayscale" />
+              </div>
+
+              {/* Direct Position Hits */}
+              <div className="absolute inset-0 z-30">
+                 {[
+                   { id: 'northwest', style: { top: '16px', left: '16px' } },
+                   { id: 'northeast', style: { top: '16px', right: '16px' } },
+                   { id: 'southwest', style: { bottom: '16px', left: '16px' } },
+                   { id: 'southeast', style: { bottom: '16px', right: '16px' } },
+                   { id: 'center', style: { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' } },
+                 ].map((pos) => (
+                   <button 
+                    key={pos.id} 
+                    onClick={() => setWatermarkPosition(pos.id)}
+                    style={pos.style}
+                    className={`absolute w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-300 ${watermarkPosition === pos.id ? 'bg-blue-600 border-blue-600 scale-110 shadow-lg' : 'bg-black/20 border-white/10 hover:border-white/40'}`}
+                   >
+                      <Circle size={watermarkPosition === pos.id ? 6 : 3} fill="currentColor" className={watermarkPosition === pos.id ? 'text-white' : 'text-white/30'} />
+                   </button>
+                 ))}
+              </div>
+              
+              {/* Watermark Rendering - Instant Move + Fade */}
+              <div className="absolute inset-0 pointer-events-none z-20">
+                <div 
+                  className="absolute transition-opacity duration-300 ease-out" 
+                  style={{ ...getPreviewPositionStyles(), opacity: watermarkOpacity }}
+                >
                   {watermarkUrl ? (
-                    <img 
-                      src={watermarkUrl} 
-                      alt="Watermark Preview" 
-                      className="max-w-[200px] h-auto object-contain transition-opacity duration-300"
-                      style={{ opacity: watermarkOpacity }}
-                      onError={(e) => { e.target.style.display = 'none'; }}
-                    />
+                    <img src={watermarkUrl} alt="Watermark" className="max-w-[80px] md:max-w-[110px] h-auto object-contain brightness-110 drop-shadow-xl" />
                   ) : (
-                    <div className="text-center space-y-2">
-                      <ImageIcon size={40} className="mx-auto text-zinc-300" />
-                      <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-widest">No watermark uploaded</p>
-                    </div>
+                    <div className="text-[8px] text-white/5 font-black uppercase tracking-[0.8em]">Empty Asset</div>
                   )}
-                  
-                  <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                    <input type="file" accept="image/png" onChange={handleWatermarkUpload} className="hidden" disabled={isUploading} />
-                    <div className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                      {isUploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
-                      {watermarkUrl ? 'Change Logo' : 'Upload Logo (.png)'}
+                </div>
+              </div>
+            </div>
+
+            {/* Compact Control Dock */}
+            <div className="px-6 py-4 flex items-center justify-between gap-10 bg-white dark:bg-zinc-900/50">
+               <div className="flex items-center gap-6">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input type="file" accept="image/png" onChange={handleWatermarkUpload} className="hidden" />
+                    <div className="w-10 h-10 rounded-2xl bg-zinc-950 text-white flex items-center justify-center group-hover:bg-blue-600 transition-all shadow-lg">
+                       {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-900 dark:text-white leading-none">Assets</span>
+                      <span className="text-[8px] font-bold uppercase text-zinc-400 mt-1">.PNG Only</span>
                     </div>
                   </label>
-                </div>
-                <p className="text-[9px] text-zinc-400 italic">* แนะนำขนาดไม่เกิน 800x800px ไฟล์ .png เท่านั้น</p>
-              </div>
+               </div>
 
-              <div className="flex flex-col justify-between py-2">
-                <div className="space-y-6">
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400 flex items-center gap-2">
-                        <Sliders size={12} /> Opacity
-                      </label>
-                      <span className="text-sm font-bold text-blue-500">{Math.round(watermarkOpacity * 100)}%</span>
-                    </div>
+               {/* Opacity Control - Larger & Clearer */}
+               <div className="flex-1 flex flex-col gap-2 max-w-[300px]">
+                  <div className="flex justify-between items-center px-1">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Transparency</span>
+                    <span className="text-sm font-mono font-black text-blue-600 leading-none">{Math.round(watermarkOpacity * 100)}%</span>
+                  </div>
+                  <div className="relative h-2.5 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden border border-zinc-50 dark:border-zinc-800 shadow-inner">
+                    <div className="absolute h-full bg-blue-600 rounded-full transition-all duration-300" style={{ width: `${watermarkOpacity * 100}%` }} />
                     <input 
-                      type="range" 
-                      min="0" 
-                      max="1" 
-                      step="0.05" 
+                      type="range" min="0" max="1" step="0.05" 
                       value={watermarkOpacity} 
-                      onChange={(e) => setWatermarkOpacity(parseFloat(e.target.value))}
-                      className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full appearance-none cursor-pointer accent-blue-600"
+                      onChange={e => setWatermarkOpacity(parseFloat(e.target.value))}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     />
                   </div>
-                  
-                  <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-900/20">
-                    <p className="text-[10px] text-blue-600 dark:text-blue-400 font-medium leading-relaxed">
-                      <strong>Tip:</strong> ลายน้ำจะถูกวางที่มุมขวาล่างของรูปภาพ RAW โดยอัตโนมัติ และจะเว้นระยะห่างจากขอบให้เหมาะสม
-                    </p>
-                  </div>
-                </div>
+               </div>
 
-                <button 
-                  onClick={handleSaveWatermarkSettings}
-                  className="mt-8 w-full py-4 bg-zinc-950 dark:bg-zinc-100 text-white dark:text-black font-bold rounded-2xl text-[10px] uppercase tracking-[0.2em] hover:bg-blue-600 hover:text-white transition-all shadow-xl shadow-black/5"
-                >
-                  Save Watermark Configuration
-                </button>
-              </div>
+               <button 
+                 onClick={handleSaveWatermarkSettings}
+                 className="px-8 py-3 bg-zinc-950 dark:bg-zinc-100 text-white dark:text-black font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] hover:bg-blue-600 hover:text-white transition-all active:scale-95 flex items-center gap-3 shadow-xl shadow-zinc-200 dark:shadow-none"
+               >
+                 <Save size={14} /> Commit Changes
+               </button>
             </div>
           </section>
         )}
@@ -438,12 +412,13 @@ export default function EventManagement() {
               <div className="flex items-center gap-3"><div className="p-2.5 bg-blue-500/20 rounded-2xl"><ImageIcon size={20} className="text-blue-400" /></div><h2 className="text-2xl font-medium uppercase tracking-widest">Storage Control</h2></div>
               <div className="space-y-4">
               <div className="flex justify-between items-end">
-    <p className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest leading-none">Days remaining</p>
-    <div className={`flex items-baseline gap-2 ${daysRemaining <= 1 ? 'text-red-500' : 'text-white'}`}>
-      <span className="text-5xl font-medium tracking-tighter">{daysRemaining}</span>
-      <span className="text-xl font-medium">วัน</span>
-    </div>
-  </div>                <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden"><div className={`h-full transition-all duration-1000 ${daysRemaining <= 1 ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${Math.min(100, (daysRemaining / (event?.storage_days || 2)) * 100)}%` }} /></div>
+                <p className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest leading-none">Days remaining</p>
+                <div className={`flex items-baseline gap-2 ${daysRemaining <= 1 ? 'text-red-500' : 'text-white'}`}>
+                  <span className="text-5xl font-medium tracking-tighter">{daysRemaining}</span>
+                  <span className="text-xl font-medium">วัน</span>
+                </div>
+              </div>                
+              <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden"><div className={`h-full transition-all duration-1000 ${daysRemaining <= 1 ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${Math.min(100, (daysRemaining / (event?.storage_days || 2)) * 100)}%` }} /></div>
               </div>
               <div className="grid grid-cols-2 gap-8 pt-4"><div><p className="text-[9px] font-medium text-zinc-500 uppercase tracking-widest mb-1">Created</p><p className="text-sm font-medium">{event?.created_at && new Date(event.created_at).toLocaleDateString('th-TH')}</p></div><div className="text-right"><p className="text-[9px] font-medium text-zinc-500 uppercase tracking-widest mb-1">Expires</p><p className={`text-sm font-medium ${isExpired ? 'text-red-500' : 'text-white'}`}>{expiry?.toLocaleDateString('th-TH')}</p></div></div>
             </div>
@@ -463,8 +438,6 @@ export default function EventManagement() {
       </main>
 
       {/* --- Modals --- */}
-      
-      {/* Edit Job Modal */}
       {isEditing && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[150] flex items-center justify-center p-6">
           <div className="bg-white dark:bg-zinc-950 w-full max-w-lg rounded-[3rem] p-12 shadow-2xl">
@@ -478,7 +451,6 @@ export default function EventManagement() {
         </div>
       )}
 
-      {/* Connect Device Modal */}
       {isCheckInOpen && (
         <div className="fixed inset-0 bg-white/95 dark:bg-black/95 backdrop-blur-3xl z-[100] flex items-center justify-center p-6 text-zinc-900 dark:text-white">
           <div className="bg-white dark:bg-zinc-950 w-full max-w-2xl rounded-[4rem] p-12 shadow-2xl border border-zinc-100 dark:border-zinc-800">
