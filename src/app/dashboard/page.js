@@ -272,6 +272,39 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {isJoining && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[100] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-[3rem] p-10 md:p-12 shadow-2xl border border-zinc-100 dark:border-zinc-800">
+            <div className="text-center mb-10">
+              <div className="w-16 h-16 bg-purple-50 dark:bg-purple-900/20 rounded-2xl flex items-center justify-center mx-auto mb-6 text-purple-500">
+                <Users size={32} />
+              </div>
+              <h2 className="text-3xl font-medium mb-2 tracking-tight">Join Event</h2>
+              <p className="text-zinc-500 text-sm font-medium">กรอกรหัส 6 หลักเพื่อเข้าร่วมทีม</p>
+            </div>
+            <form onSubmit={handleJoinEvent} className="text-left space-y-6">
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2 text-center">Enter Join Code</label>
+                <input 
+                  autoFocus 
+                  required 
+                  value={joinCodeInput} 
+                  onChange={(e) => setJoinCodeInput(e.target.value.toUpperCase())} 
+                  className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-2xl p-6 focus:ring-1 ring-purple-500 transition-all font-black text-3xl text-center tracking-[0.5em] shadow-inner outline-none" 
+                  placeholder="XXXXXX"
+                  maxLength={6}
+                />
+              </div>
+              <div className="flex flex-col items-center gap-6 pt-6">
+                <button type="submit" className="w-full py-5 bg-zinc-950 dark:bg-zinc-100 text-white dark:text-black font-semibold rounded-3xl shadow-xl uppercase text-[10px] tracking-[0.3em] hover:scale-[1.02] active:scale-95 transition-all">Join Project</button>
+                <button type="button" onClick={() => setIsJoining(false)} className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 font-bold uppercase text-[10px] tracking-[0.3em] transition-colors">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      
     </div>
   );
 }
