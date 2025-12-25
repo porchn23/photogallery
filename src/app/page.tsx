@@ -46,7 +46,6 @@ export default async function LandingPage() {
             </div>
           </div>
           <div className="flex items-center gap-6 md:gap-8">
-            <Link href="/login" className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">Sign In</Link>
             <Link href="/login" className="px-5 py-2 md:px-6 md:py-2.5 bg-zinc-950 text-white rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-black/5">Get Started</Link>
           </div>
         </div>
@@ -95,8 +94,20 @@ export default async function LandingPage() {
       </section>
 
       {/* --- Value Propositions (5 Key Pillars) --- */}
+      {/* --- Value Propositions (7 Key Pillars) --- */}
       <section className="relative z-10 py-20 px-6 bg-[#fafafa]/50 backdrop-blur-sm border-y border-zinc-100">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10 text-center px-4">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-10 text-center px-4">
+        <div className="space-y-3">
+            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-cyan-500 mx-auto shadow-sm border border-zinc-100"><Camera size={24} /></div>
+            <h3 className="text-base font-bold tracking-tight">AI Face Detection</h3>
+            <p className="text-zinc-500 text-[11px] leading-relaxed max-w-[200px] mx-auto">ระบบตรวจจับและวิเคราะห์ใบหน้าอัจฉริยะ แม่นยำแม้ในสภาพแสงน้อย</p>
+          </div>
+          <div className="space-y-3">
+            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-pink-500 mx-auto shadow-sm border border-zinc-100"><Sparkles size={24} /></div>
+            <h3 className="text-base font-bold tracking-tight">AI Beauty</h3>
+            <p className="text-zinc-500 text-[11px] leading-relaxed max-w-[200px] mx-auto">ยกระดับความสวยงามของภาพถ่ายด้วย AI Retouch ที่ดูเป็นธรรมชาติ</p>
+          </div>
+          
           <div className="space-y-3">
             <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-blue-600 mx-auto shadow-sm border border-zinc-100"><Zap size={24} /></div>
             <h3 className="text-base font-bold tracking-tight">Real-time Delivery</h3>
@@ -124,6 +135,7 @@ export default async function LandingPage() {
           </div>
         </div>
       </section>
+
 
       {/* --- Key Feature Focus --- */}
       <section className="relative z-10 py-28 px-6">
@@ -156,7 +168,7 @@ export default async function LandingPage() {
         <div className="max-w-4xl mx-auto px-6 text-center space-y-12">
           <div className="flex flex-wrap justify-center gap-x-10 gap-y-2">
             <Link href="/policy" className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400 hover:text-black transition-colors">Privacy Policy</Link>
-            <Link href="/policy" className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400 hover:text-black transition-colors">Terms of Service</Link>
+            <Link href="/terms" className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400 hover:text-black transition-colors">Terms of Service</Link>
             <a href="mailto:support@rooplife.com" className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400 hover:text-black transition-colors">Support</a>
           </div>
 

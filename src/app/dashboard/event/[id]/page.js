@@ -363,8 +363,8 @@ export default function EventManagement() {
             {/* ✅ Preview Area: แสดง Background ใหม่ที่ดูพรีเมียมขึ้น */}
             <div className="relative aspect-[16/9] md:aspect-[4/1] w-full bg-zinc-950 overflow-hidden flex items-center justify-center border-b border-zinc-100 dark:border-zinc-800">
               <div className="absolute inset-0 opacity-20">
-                <img 
-                  src="https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=2000&auto=format&fit=crop" 
+              <img 
+                  src={supabase.storage.from('Asset').getPublicUrl('watermark-bg001.png').data.publicUrl} 
                   className="w-full h-full object-cover grayscale brightness-50" 
                   alt="Preview BG"
                 />
