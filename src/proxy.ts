@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({
     request: { headers: request.headers },
   })
@@ -24,7 +24,7 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
 
-  console.log(`--- DEBUG MIDDLEWARE --- Path: ${pathname} | User: ${user ? 'Found' : 'Not Found'}`)
+  console.log(`--- DEBUG PROXY --- Path: ${pathname} | User: ${user ? 'Found' : 'Not Found'}`)
 
   // กรณีพยายามเข้า Dashboard แต่ไม่มี User
   if (!user && pathname.startsWith('/dashboard')) {

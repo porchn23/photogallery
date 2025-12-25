@@ -1,10 +1,17 @@
-import { X, Camera, Clock, Download, Briefcase, Loader2 } from 'lucide-react';
+'use client';
+import { X, Camera, Clock, Download, Briefcase, Loader2, Sparkles } from 'lucide-react';
 import { useEffect, useCallback, useState, useRef } from 'react';
+
+/**
+ * AI FACE-GRID: PHOTO MODAL COMPONENT
+ * Version: 5.7 (Photographer Credit & AI Beauty Status)
+ * แบรนด์: Rooplife
+ */
 
 export default function PhotoModal({ photo, allPhotos, onClose, onPhotoChange, eventOwner }) {
   const [isDownloading, setIsDownloading] = useState(false);
   
-  // ใช้สำหรับตรวจจับการปัด
+  // ใช้สำหรับตรวจจับการปัด (Swipe) เพื่อเปลี่ยนรูป
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
   const minSwipeDistance = 50;
@@ -30,7 +37,7 @@ export default function PhotoModal({ photo, allPhotos, onClose, onPhotoChange, e
     }
   }, [currentIndex, allPhotos, onPhotoChange]);
 
-  // --- SWIPE LOGIC (ใส่ไว้ที่ Outermost Container) ---
+  // --- SWIPE LOGIC ---
   const handleTouchStart = (e) => {
     touchStartX.current = e.targetTouches[0].clientX;
     touchEndX.current = e.targetTouches[0].clientX;
@@ -45,9 +52,9 @@ export default function PhotoModal({ photo, allPhotos, onClose, onPhotoChange, e
     if (Math.abs(distance) < minSwipeDistance) return;
     
     if (distance > minSwipeDistance) {
-      handleNext(); // ปัดซ้ายไปขวา (Next)
+      handleNext(); 
     } else {
-      handlePrev(); // ปัดขวาไปซ้าย (Prev)
+      handlePrev();
     }
   };
 
@@ -99,28 +106,47 @@ export default function PhotoModal({ photo, allPhotos, onClose, onPhotoChange, e
           <X size={20} />
         </button>
 
-        <div className="bg-white p-1 shadow-inner rounded-lg border border-zinc-200">
+        <div className="bg-white p-1 shadow-inner rounded-lg border border-zinc-200 relative">
           <img src={photo.url_raw} alt="Full View" className="w-full h-auto max-h-[60vh] object-contain mx-auto rounded" draggable="false" />
+          
+          {/* AI Beauty Status Badge */}
+          {photo.ai_beauty && (
+            <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-pink-500/90 text-white rounded-full shadow-lg backdrop-blur-sm border border-white/20 animate-in fade-in zoom-in duration-300">
+              <Sparkles size={12} fill="currentColor" />
+              <span className="text-[10px] font-black uppercase tracking-widest leading-none">AI Beauty</span>
+            </div>
+          )}
         </div>
 
         <div className="mt-5 flex flex-col md:flex-row justify-between items-center gap-6 border-t border-zinc-200/50 pt-5">
           <div className="flex-1 w-full space-y-4">
             <div className="grid grid-cols-2 gap-4">
+              {/* ส่วนแสดงชื่อช่างภาพ */}
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-500 shadow-sm"><Camera size={16} /></div>
+                <div className="w-9 h-9 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-500 shadow-sm border border-zinc-200">
+                  <Camera size={16} />
+                </div>
                 <div>
-                  <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-bold">Credit</p>
-                  <p className="text-sm font-bold text-zinc-800 italic">{photo.credit?.name || 'WSWSS'}</p>
+                  <p className="text-[9px] uppercase tracking-widest text-zinc-400 font-bold leading-tight">Photographer</p>
+                  <p className="text-sm font-bold text-zinc-900 italic leading-tight">
+                    {photo.credit?.name || 'Rooplife'}
+                  </p>
                 </div>
               </div>
+              
+              {/* ส่วนแสดงชื่อเจ้าของงาน */}
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 shadow-sm"><Briefcase size={16} /></div>
+                <div className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 shadow-sm border border-amber-100">
+                  <Briefcase size={16} />
+                </div>
                 <div>
-                  <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-bold">Event Owner</p>
-                  <p className="text-sm font-bold text-zinc-700">{eventOwner}</p>
+                  <p className="text-[9px] uppercase tracking-widest text-zinc-400 font-bold leading-tight">Project Owner</p>
+                  <p className="text-sm font-bold text-zinc-700 leading-tight">{eventOwner}</p>
                 </div>
               </div>
             </div>
+
+            {/* ส่วนแสดงวันเวลาที่ถ่าย */}
             {photo.taken_at && (() => {
               const { date, time } = formatDateTimeFull(photo.taken_at);
               return (
@@ -143,6 +169,8 @@ export default function PhotoModal({ photo, allPhotos, onClose, onPhotoChange, e
           </button>
         </div>
       </div>
+
+      {/* เลขลำดับรูปภาพด้านล่าง */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/20 backdrop-blur-md px-4 py-1.5 rounded-full text-white/60 text-[10px] font-bold tracking-[0.2em]">
         {currentIndex + 1} / {allPhotos.length}
       </div>
