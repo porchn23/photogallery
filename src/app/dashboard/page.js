@@ -75,10 +75,8 @@ export default function Dashboard() {
       const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
       const startTimeISO = startTime ? new Date(startTime).toISOString() : null;
 
-      // 1. หักเงินในตาราง users เท่านั้น
       await supabase.from('users').update({ wallet_balance: user.wallet_balance - 100 }).eq('id', user.id);
       
-      // 2. สร้างข้อมูล Event
       const { data: newEvent, error: eventError } = await supabase.from('events').insert({ 
         owner_id: user.id, 
         title: newTitle, 
@@ -91,7 +89,6 @@ export default function Dashboard() {
 
       if (eventError) throw eventError;
 
-      // 3. บันทึก Log การเงินไปยัง Axiom (แทนตาราง wallet_transactions)
       logEvent('create_event', {
         user_id: user.id,
         user_name: user.full_name,
@@ -179,7 +176,15 @@ export default function Dashboard() {
       <Header balance={user?.wallet_balance} user={user} />
       <main className="max-w-6xl mx-auto p-6 md:p-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16 pt-8">
-          <button onClick={() => setIsCreating(true)} className="group flex flex-col items-center justify-center p-10 bg-zinc-950 dark:bg-zinc-100 text-white dark:text-black rounded-[2.5rem] hover:scale-[1.02] transition-all shadow-xl">
+          <button 
+            onClick={() => {
+              setIsCreating(true);
+              const now = new Date();
+              now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+              setStartTime(now.toISOString().slice(0, 16));
+            }} 
+            className="group flex flex-col items-center justify-center p-10 bg-zinc-950 dark:bg-zinc-100 text-white dark:text-black rounded-[2.5rem] hover:scale-[1.02] transition-all shadow-xl"
+          >
             <div className="w-14 h-14 bg-white/10 dark:bg-black/5 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"><Plus size={28} /></div>
             <span className="font-medium text-lg tracking-tight">Create Event</span>
             <span className="text-zinc-400 dark:text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1">100 THB / Job</span>
@@ -258,11 +263,40 @@ export default function Dashboard() {
                 <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Package Inclusions:</p>
                 <div className="flex items-center gap-3 text-sm font-medium"><CheckCircle2 size={16} className="text-green-500" /><span>ใช้งานกล้องได้ 1 ตัว (1 Slot)</span></div>
                 <div className="flex items-center gap-3 text-sm font-medium"><CheckCircle2 size={16} className="text-green-500" /><span>พื้นที่เก็บรูปภาพ 2 วัน (Storage)</span></div>
+                <div className="flex items-center gap-3 text-sm font-medium"><CheckCircle2 size={16} className="text-green-500" /><span>ระบบ AI Face Detection อัจฉริยะ</span></div>
+                <div className="flex items-center gap-3 text-sm font-medium"><CheckCircle2 size={16} className="text-green-500" /><span>อัปโหลดรูปภาพได้ไม่จำกัด (Unlimited)</span></div>
               </div>
             </div>
             <form onSubmit={handleCreateEvent} className="text-left space-y-6">
               <div><label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">Event Title</label><input autoFocus required value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-2xl p-5 focus:ring-1 ring-blue-500 transition-all font-medium text-lg shadow-inner outline-none" placeholder="เช่น Wedding Party @Siam" /></div>
-              <div><label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">Start Date & Time</label><input required type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-2xl p-5 focus:ring-1 ring-blue-500 transition-all font-medium shadow-inner outline-none" /></div>
+              <div>
+                <div className="flex justify-between items-end mb-2">
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                    Start Date & Time
+                  </label>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      const now = new Date();
+                      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                      setStartTime(now.toISOString().slice(0, 16));
+                    }}
+                    className="text-[10px] font-bold text-blue-500 hover:text-blue-600 uppercase tracking-widest transition-colors"
+                  >
+                    Set to Now
+                  </button>
+                </div>
+                <div className="relative">
+                  <input 
+                    required 
+                    type="datetime-local" 
+                    value={startTime} 
+                    onChange={(e) => setStartTime(e.target.value)} 
+                    className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-2xl p-5 focus:ring-1 ring-blue-500 transition-all font-medium shadow-inner outline-none appearance-none" 
+                  />
+                  <Calendar className="absolute right-5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" size={20} />
+                </div>
+              </div>
               {error && <p className="text-red-500 text-[10px] font-bold bg-red-50 dark:bg-red-900/20 p-3 rounded-xl uppercase tracking-widest text-center">⚠️ {error}</p>}
               <div className="flex flex-col items-center gap-6 pt-6">
                 <button type="submit" className="w-full py-5 bg-zinc-950 dark:bg-zinc-100 text-white dark:text-black font-semibold rounded-3xl shadow-xl uppercase text-[10px] tracking-[0.3em] hover:scale-[1.02] active:scale-95 transition-all">Create Event (฿100)</button>
