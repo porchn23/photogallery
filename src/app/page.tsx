@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { 
   Zap, Camera, Users, ShieldCheck, 
   ArrowRight, CheckCircle2, Cloud, Sparkles, Lock,
-  Globe, CreditCard, Settings
+  Globe, CreditCard, Settings, Plus
 } from 'lucide-react'
 
 // นำเข้า Background ที่ลื่นไหลและพริ้วไหว
@@ -35,8 +35,8 @@ export default async function LandingPage() {
 
       {/* --- Header / Navigation --- */}
       <nav className="fixed top-0 w-full z-50 bg-white/60 backdrop-blur-xl border-b border-zinc-100/50">
-        <div className="max-w-7xl mx-auto px-6 h-16 md:h-18 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+      <div className="max-w-7xl mx-auto px-6 h-14 md:h-16 flex items-center justify-between">
+      <div className="flex items-center gap-3">
             <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-xl overflow-hidden border border-zinc-100 shadow-sm bg-white">
               <Image src="/rooplife-logo/android-chrome-192x192.png" alt="Logo" fill className="object-contain p-1.5" priority />
             </div>
@@ -51,52 +51,47 @@ export default async function LandingPage() {
         </div>
       </nav>
 
-      {/* --- Hero Section --- */}
-      <section className="relative pt-36 md:pt-48 pb-20 px-6 z-10 text-center">
-        {/* CSS Animation สำหรับการเลื่อนของสีพาสเทล */}
-        <style dangerouslySetInnerHTML={{ __html: `
-          @keyframes text-gradient {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-          }
-          .animate-text-gradient {
-            background-size: 200% auto;
-            animation: text-gradient 6s linear infinite;
-          }
-        `}} />
+      // ... existing code ...
 
-        <div className="max-w-4xl mx-auto space-y-10">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/80 backdrop-blur-md text-zinc-400 rounded-full border border-zinc-200 shadow-sm cursor-default">
-            <Sparkles size={14} className="text-blue-500 animate-pulse" />
-            <span className="text-[9px] font-black uppercase tracking-[0.3em]">Next-Gen AI Photo Ecosystem</span>
-          </div>
-          
-          <div className="space-y-6">
-            <h1 className="text-4xl md:text-7xl font-black tracking-tight leading-[1.1] px-4">
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-pink-400 via-blue-400 via-emerald-400 via-amber-400 to-pink-400 animate-text-gradient">
-                ยกระดับการจัดการภาพถ่าย <br />
-                ด้วยพลังปัญญาประดิษฐ์
-              </span>
-            </h1>
-            
-            <p className="max-w-xl mx-auto text-sm md:text-lg text-zinc-500 font-medium leading-relaxed italic opacity-80 px-6">
-              "นวัตกรรมที่ช่วยให้ตากล้องมืออาชีพทำงานได้เร็วขึ้น <br className="hidden md:block" /> คัดแยกใบหน้าและส่งมอบความประทับใจในไม่กี่วินาที"
-            </p>
-          </div>
-          
-          <div className="flex justify-center pt-2">
-            <Link href="/login" className="px-10 py-5 bg-zinc-950 text-white rounded-2xl font-bold text-base flex items-center gap-4 hover:scale-[1.02] active:scale-95 transition-all shadow-2xl shadow-blue-900/10 group">
-              เริ่มต้นสร้างอีเวนต์ <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-        </div>
-      </section>
+{/* --- Hero Section --- */}
+{/* 1. ลด Padding บน-ล่าง ของ Section (บรรทัดที่ 55) */}
+<section className="relative pt-24 md:pt-32 pb-12 px-6 z-10 text-center">
+  {/* ... existing style ... */}
+
+  {/* 2. ลดระยะห่างระหว่างกลุ่มเนื้อหาหลัก จาก space-y-10 เหลือ space-y-6 (บรรทัดที่ 69) */}
+  <div className="max-w-4xl mx-auto space-y-6">
+    <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/80 backdrop-blur-md text-zinc-400 rounded-full border border-zinc-200 shadow-sm cursor-default">
+      <Sparkles size={14} className="text-blue-500 animate-pulse" />
+      <span className="text-[9px] font-black uppercase tracking-[0.3em]">Next-Gen AI Photo Ecosystem</span>
+    </div>
+    
+    {/* 3. ลดระยะห่างระหว่างหัวข้อและคำอธิบาย จาก space-y-6 เหลือ space-y-3 (บรรทัดที่ 75) */}
+    <div className="space-y-3">
+      {/* 4. ปรับขนาดตัวอักษรหัวข้อให้เล็กลงเล็กน้อย เพื่อลดความสูงของบรรทัด (บรรทัดที่ 76) */}
+      <h1 className="text-3xl md:text-6xl font-black tracking-tight leading-tight px-4">
+        <span className="bg-clip-text text-transparent bg-gradient-to-r from-pink-400 via-blue-400 via-emerald-400 via-amber-400 to-pink-400 animate-text-gradient">
+          ยกระดับการจัดการภาพถ่าย <br />
+          ด้วยพลังปัญญาประดิษฐ์
+        </span>
+      </h1>
+      
+      <p className="max-w-xl mx-auto text-sm md:text-base text-zinc-500 font-medium leading-relaxed italic opacity-80 px-6">
+        "นวัตกรรมที่ช่วยให้ตากล้องมืออาชีพทำงานได้เร็วขึ้น <br className="hidden md:block" /> คัดแยกใบหน้าและส่งมอบความประทับใจในไม่กี่วินาที"
+      </p>
+    </div>
+    
+    <div className="flex justify-center pt-0">
+      <Link href="/login" className="px-10 py-5 bg-zinc-950 text-white rounded-2xl font-bold text-base flex items-center gap-4 hover:scale-[1.02] active:scale-95 transition-all shadow-2xl shadow-blue-900/10 group">
+        เริ่มต้นสร้างอีเวนต์ <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+      </Link>
+    </div>
+  </div>
+</section>
 
       {/* --- Value Propositions (5 Key Pillars) --- */}
       {/* --- Value Propositions (7 Key Pillars) --- */}
-      <section className="relative z-10 py-20 px-6 bg-[#fafafa]/50 backdrop-blur-sm border-y border-zinc-100">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-10 text-center px-4">
+      <section className="relative z-10 py-16 px-6 bg-[#fafafa]/50 backdrop-blur-sm border-y border-zinc-100">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-10 text-center px-4">
         <div className="space-y-3">
             <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-cyan-500 mx-auto shadow-sm border border-zinc-100"><Camera size={24} /></div>
             <h3 className="text-base font-bold tracking-tight">AI Face Detection</h3>
@@ -138,8 +133,8 @@ export default async function LandingPage() {
 
 
       {/* --- Key Feature Focus --- */}
-      <section className="relative z-10 py-28 px-6">
-        <div className="max-w-5xl mx-auto space-y-24">
+      <section className="relative z-10 py-24 px-6">
+      <div className="max-w-5xl mx-auto space-y-24">
           <div className="flex flex-col md:flex-row items-center gap-12 md:gap-20">
             <div className="flex-1 space-y-5">
               <h2 className="text-3xl md:text-4xl font-medium tracking-tight leading-tight text-zinc-950">
@@ -163,9 +158,62 @@ export default async function LandingPage() {
         </div>
       </section>
 
+{/* --- Compatible Cameras (Updated: Ultra-Large Logo Display) --- */}
+<section className="relative z-10 py-16 px-6 bg-white border-y border-zinc-100/50">
+  <div className="max-w-6xl mx-auto space-y-12">
+    <div className="text-center space-y-3">
+      <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-600 rounded-full border border-blue-100/50">
+        <Cloud size={12} className="animate-bounce" />
+        <span className="text-[9px] font-black uppercase tracking-widest text-blue-600">Pro Gear Connectivity</span>
+      </div>
+      <h2 className="text-2xl md:text-3xl font-black tracking-tight text-zinc-950 uppercase">
+        Compatible <span className="text-blue-600">Hardware</span>
+      </h2>
+    </div>
+
+    {/* Grid Layout: ปรับให้โลโก้แต่ละแบรนด์ใหญ่และชัดเจนที่สุด */}
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 items-start justify-items-center">
+      {[
+        { name: 'Sony', logo: 'sony.png', models: 'A1, A9 III, A7R V, FX3' },
+        { name: 'Canon', logo: 'canon.png', models: 'R1, R3, R5 II, 1DX III' },
+        { name: 'Nikon', logo: 'nikon.png', models: 'Z9, Z8, Z6 III, D6' },
+        { name: 'Fujifilm', logo: 'fujifilm.png', models: 'X-H2S, GFX100 II, X-T5' },
+        { name: 'Panasonic', logo: 'panasonic.png', models: 'S5 IIX, GH6, BGH1' },
+        { name: 'Olympus', logo: 'olympus.png', models: 'OM-1 II, E-M1X' },
+      ].map((brand) => (
+        <div key={brand.name} className="flex flex-col gap-4 group w-full max-w-[180px]">
+          {/* กรอบโลโก้: ทรงสี่เหลี่ยมผืนผ้าแบบ Wide เพื่อให้โลโก้แนวนอนขยายได้ใหญ่ที่สุด */}
+          <div className="relative w-full aspect-[2.2/1] bg-[#fafafa] rounded-[1.5rem] flex items-center justify-center p-3 border border-zinc-100 hover:border-blue-500/30 hover:bg-white hover:shadow-2xl hover:shadow-blue-500/5 hover:-translate-y-1.5 transition-all duration-500">
+            <div className="relative w-full h-full transition-all duration-500 group-hover:scale-110">
+              <Image 
+                src={`/brand-logo/${brand.logo}`} 
+                alt={brand.name} 
+                fill 
+                className="object-contain" 
+                priority
+              />
+            </div>
+          </div>
+          
+          {/* รายละเอียดรุ่น: เรียบหรูและชัดเจน */}
+          <div className="text-center space-y-1.5">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 group-hover:text-zinc-950 transition-colors">
+              {brand.name}
+            </p>
+            <div className="px-2 py-1 bg-zinc-50 rounded-lg border border-zinc-100/50 group-hover:bg-blue-50 group-hover:border-blue-100/50 transition-colors">
+              <p className="text-[8px] md:text-[9px] text-zinc-500 group-hover:text-blue-600 font-bold uppercase tracking-tight leading-tight text-center">
+                {brand.models}
+              </p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
       {/* --- Footer --- */}
-      <footer className="relative z-10 py-16 bg-white/80 backdrop-blur-md border-t border-zinc-100">
-        <div className="max-w-4xl mx-auto px-6 text-center space-y-12">
+      <footer className="relative z-10 py-12 bg-white/80 backdrop-blur-md border-t border-zinc-100">        <div className="max-w-4xl mx-auto px-6 text-center space-y-12">
           <div className="flex flex-wrap justify-center gap-x-10 gap-y-2">
             <Link href="/policy" className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400 hover:text-black transition-colors">Privacy Policy</Link>
             <Link href="/terms" className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400 hover:text-black transition-colors">Terms of Service</Link>
