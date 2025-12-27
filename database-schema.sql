@@ -17,6 +17,27 @@ CREATE TABLE public.cameras (
   CONSTRAINT cameras_pkey PRIMARY KEY (id),
   CONSTRAINT cameras_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.coupon_usages (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  coupon_id uuid,
+  user_id uuid,
+  used_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT coupon_usages_pkey PRIMARY KEY (id),
+  CONSTRAINT coupon_usages_coupon_id_fkey FOREIGN KEY (coupon_id) REFERENCES public.coupons(id),
+  CONSTRAINT coupon_usages_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.coupons (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  code text NOT NULL UNIQUE,
+  amount numeric NOT NULL,
+  max_usages integer DEFAULT 1,
+  usage_count integer DEFAULT 0,
+  user_limit integer DEFAULT 1,
+  expiry_date timestamp with time zone,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT coupons_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.event_cameras (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   event_id uuid NOT NULL,
@@ -24,6 +45,7 @@ CREATE TABLE public.event_cameras (
   last_seen timestamp with time zone DEFAULT timezone('utc'::text, now()),
   user_id uuid,
   camera_id uuid NOT NULL,
+  ai_beauty_enabled boolean DEFAULT false,
   CONSTRAINT event_cameras_pkey PRIMARY KEY (id),
   CONSTRAINT event_cameras_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id),
   CONSTRAINT fk_camera_photographer FOREIGN KEY (user_id) REFERENCES public.users(id),
@@ -48,8 +70,14 @@ CREATE TABLE public.events (
   ai_beauty_enabled boolean DEFAULT false,
   status text DEFAULT 'active'::text,
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
-  storage_days integer DEFAULT 3,
+  storage_days integer DEFAULT 2,
   join_code text UNIQUE,
+  watermark_path text,
+  watermark_enabled boolean DEFAULT false,
+  watermark_opacity double precision DEFAULT 1.0,
+  watermark_version bigint,
+  watermark_position text,
+  watermark_size integer DEFAULT 400,
   CONSTRAINT events_pkey PRIMARY KEY (id),
   CONSTRAINT events_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id)
 );
@@ -86,6 +114,7 @@ CREATE TABLE public.photos (
   uploaded_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   created_at timestamp with time zone DEFAULT now(),
   camera_serial text,
+  ai_beauty boolean DEFAULT false,
   CONSTRAINT photos_pkey PRIMARY KEY (id),
   CONSTRAINT photos_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id)
 );
@@ -95,13 +124,14 @@ CREATE TABLE public.users (
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   phone_number text,
   avatar_url text,
-  wallet_balance integer DEFAULT 0 CHECK (wallet_balance >= 0),
+  wallet_balance numeric DEFAULT 0 CHECK (wallet_balance >= 0::numeric),
+  full_name text,
   CONSTRAINT users_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.wallet_transactions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
-  amount integer NOT NULL,
+  amount numeric NOT NULL,
   type text NOT NULL,
   description text,
   created_at timestamp with time zone DEFAULT now(),
