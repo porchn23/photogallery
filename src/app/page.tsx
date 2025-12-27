@@ -179,7 +179,7 @@ export default async function LandingPage() {
         { name: 'Nikon', logo: 'nikon.png', models: 'Z9, Z8, Z6 III, D6' },
         { name: 'Fujifilm', logo: 'fujifilm.png', models: 'X-H2S, GFX100 II, X-T5' },
         { name: 'Panasonic', logo: 'panasonic.png', models: 'S5 IIX, GH6, BGH1' },
-        { name: 'Olympus', logo: 'olympus1.png', models: 'OM-1 II, E-M1X' },
+        { name: 'Olympus', logo: 'olympus.png', models: 'OM-1 II, E-M1X' },
       ].map((brand) => (
         <div key={brand.name} className="flex flex-col gap-4 group w-full max-w-[180px]">
           {/* กรอบโลโก้: ทรงสี่เหลี่ยมผืนผ้าแบบ Wide เพื่อให้โลโก้แนวนอนขยายได้ใหญ่ที่สุด */}
