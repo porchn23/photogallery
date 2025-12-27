@@ -174,11 +174,11 @@ export default async function LandingPage() {
     {/* Grid Layout: ปรับให้โลโก้แต่ละแบรนด์ใหญ่และชัดเจนที่สุด */}
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 items-start justify-items-center">
       {[
-        { name: 'Sony', logo: 'sony copy.png', models: 'A1, A9 III, A7R V, FX3' },
-        { name: 'Canon', logo: 'canon copy.png', models: 'R1, R3, R5 II, 1DX III' },
-        { name: 'Nikon', logo: 'nikon copy.png', models: 'Z9, Z8, Z6 III, D6' },
-        { name: 'Fujifilm', logo: 'fujifilm copy.png', models: 'X-H2S, GFX100 II, X-T5' },
-        { name: 'Panasonic', logo: 'panasonic1.png', models: 'S5 IIX, GH6, BGH1' },
+        { name: 'Sony', logo: 'sony.png', models: 'A1, A9 III, A7R V, FX3' },
+        { name: 'Canon', logo: 'canon.png', models: 'R1, R3, R5 II, 1DX III' },
+        { name: 'Nikon', logo: 'nikon.png', models: 'Z9, Z8, Z6 III, D6' },
+        { name: 'Fujifilm', logo: 'fujifilm.png', models: 'X-H2S, GFX100 II, X-T5' },
+        { name: 'Panasonic', logo: 'panasonic.png', models: 'S5 IIX, GH6, BGH1' },
         { name: 'Olympus', logo: 'olympus1.png', models: 'OM-1 II, E-M1X' },
       ].map((brand) => (
         <div key={brand.name} className="flex flex-col gap-4 group w-full max-w-[180px]">
