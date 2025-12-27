@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { 
   Zap, Camera, Users, ShieldCheck, 
   ArrowRight, CheckCircle2, Cloud, Sparkles, Lock,
-  Globe, CreditCard, Settings, Plus
+  Globe, CreditCard, Settings, Plus, QrCode
 } from 'lucide-react'
 
 // นำเข้า Background ที่ลื่นไหลและพริ้วไหว
@@ -90,9 +90,9 @@ export default async function LandingPage() {
 
       {/* --- Value Propositions (5 Key Pillars) --- */}
       {/* --- Value Propositions (7 Key Pillars) --- */}
-      <section className="relative z-10 py-16 px-6 bg-[#fafafa]/50 backdrop-blur-sm border-y border-zinc-100">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-10 text-center px-4">
-        <div className="space-y-3">
+      <section className="relative z-10 py-20 px-6 bg-[#fafafa]/50 backdrop-blur-sm border-y border-zinc-100">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-10 gap-y-16 text-center px-4">
+      <div className="space-y-3">
             <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-cyan-500 mx-auto shadow-sm border border-zinc-100"><Camera size={24} /></div>
             <h3 className="text-base font-bold tracking-tight">AI Face Detection</h3>
             <p className="text-zinc-500 text-[11px] leading-relaxed max-w-[200px] mx-auto">ระบบตรวจจับและวิเคราะห์ใบหน้าอัจฉริยะ แม่นยำแม้ในสภาพแสงน้อย</p>
@@ -127,6 +127,12 @@ export default async function LandingPage() {
             <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-amber-500 mx-auto shadow-sm border border-zinc-100"><CreditCard size={24} /></div>
             <h3 className="text-base font-bold tracking-tight">No Subscriptions</h3>
             <p className="text-zinc-500 text-[11px] leading-relaxed max-w-[200px] mx-auto">ไม่มีระบบรายเดือนให้ปวดหัว เติมเงินเท่าที่ใช้จริง โปร่งใส ไร้ข้อผูกมัด</p>
+          </div>
+          {/* เริ่มแถวที่ 2 */}
+          <div className="space-y-3">
+            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-indigo-500 mx-auto shadow-sm border border-zinc-100"><QrCode size={24} /></div>
+            <h3 className="text-base font-bold tracking-tight">Instant QR Access</h3>
+            <p className="text-zinc-500 text-[11px] leading-relaxed max-w-[200px] mx-auto">สแกน QR Code เพื่อเข้าชมและดาวน์โหลดภาพถ่ายส่วนตัวได้ทันที</p>
           </div>
         </div>
       </section>
