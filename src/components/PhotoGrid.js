@@ -1,5 +1,5 @@
 'use client';
-import { Camera, RefreshCw, Sparkles } from 'lucide-react';
+import { Camera, RefreshCw, Sparkles,Download } from 'lucide-react';
 
 /**
  * AI FACE-GRID: PHOTO GRID COMPONENT
@@ -19,6 +19,24 @@ export default function PhotoGrid({ photos, loading, onPhotoClick }) {
 
   const items = Array.isArray(photos) ? photos : [];
 
+  // ✅ ฟังก์ชันสำหรับดาวน์โหลดรูป (ปรับปรุง)
+  const handleDownload = (e, photo) => {
+    e.stopPropagation();
+    
+    const filename = `rooplife-${photo.id}.jpg`;
+    
+    // เรียก API ภายในของเราเอง (ไม่มีปัญหา CORS)
+    const downloadUrl = `/api/download?url=${encodeURIComponent(photo.url_raw)}&filename=${encodeURIComponent(filename)}`;
+    
+    // สร้าง Link หลอกๆ เพื่อกดดาวน์โหลด
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = filename; // จริงๆ ชื่อไฟล์จะถูกจัดการโดย Header ของ API อยู่แล้ว
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="flex-1 p-1 min-h-[50vh] pt-4 pb-20">
       <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-0.5 md:gap-1">
@@ -36,15 +54,24 @@ export default function PhotoGrid({ photos, loading, onPhotoClick }) {
               alt="Rooplife Gallery Item"
             />
 
-            {/* ✅ AI Beauty Icon - แสดงที่มุมบนขวาถ้าผ่านการทำ Ai Beauty */}
+            {/* AI Beauty Icon */}
             {photo.ai_beauty && (
               <div className="absolute top-1 right-1 z-10 p-1.5 bg-pink-500/80 backdrop-blur-sm rounded-full shadow-lg border border-white/20">
                 <Sparkles size={10} className="text-white" fill="currentColor" />
               </div>
             )}
 
-            {/* Overlay Gradient เมื่อ Hover เพื่อความสวยงาม */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+            {/* ✅ Download Button - แสดงเมื่อ Hover (หรือตลอดเวลาบนมือถือถ้าต้องการปรับ) */}
+            <button 
+                onClick={(e) => handleDownload(e, photo)}
+                className="absolute bottom-1 right-1 z-20 p-2 bg-black/40 hover:bg-black/70 backdrop-blur-md rounded-full text-white/80 hover:text-white transition-all opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0"
+                title="Download"
+            >
+                <Download size={14} />
+            </button>
+
+            {/* Overlay Gradient */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
           </div>
         ))}
       </div>

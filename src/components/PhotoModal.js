@@ -70,24 +70,27 @@ export default function PhotoModal({ photo, allPhotos, onClose, onPhotoChange, e
 
   if (!photo || !allPhotos) return null;
 
-  const handleDownload = async (e) => {
-    e.preventDefault(); e.stopPropagation();
-    try {
-      setIsDownloading(true);
-      const response = await fetch(photo.url_raw);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `photo-${photo.id.slice(0, 8)}.jpg`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      window.open(photo.url_raw, '_blank');
-    } finally { setIsDownloading(false); }
-  };
+ // ตัวอย่างฟังก์ชันสำหรับปุ่ม Download ใน PhotoModal.js
+const handleDownload = async (imageUrl, fileName) => {
+  try {
+    const response = await fetch(imageUrl);
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName || `rooplife-photo-${Date.now()}.jpg`; // ตั้งชื่อไฟล์
+    document.body.appendChild(link);
+    link.click();
+    
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('Download failed:', err);
+    // Fallback: เปิด Tab ใหม่ถ้า fetch ไม่ได้
+    window.open(imageUrl, '_blank');
+  }
+};
 
   return (
     <div 
