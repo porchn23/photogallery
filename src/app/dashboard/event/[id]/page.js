@@ -12,6 +12,20 @@ import {
 } from 'lucide-react';
 import { formatThaiDate, toLocalISOString } from '@/src/lib/utils';
 import { logEvent } from '@/src/lib/axiom'; // ✅ Import Logging
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+
+// ✅ แก้ไข S3Client Config
+const s3Client = new S3Client({
+  endpoint: process.env.NEXT_PUBLIC_DO_SPACES_ENDPOINT,
+  region: "sgp1", // ควรระบุ Region ให้ตรงกับ Spaces ของคุณ (เช่น sgp1)
+  credentials: {
+    accessKeyId: process.env.NEXT_PUBLIC_DO_SPACES_KEY,
+    secretAccessKey: process.env.NEXT_PUBLIC_DO_SPACES_SECRET
+  },
+  // 👇 เพิ่ม 2 บรรทัดนี้เพื่อแก้ปัญหา readableStream.getReader error
+  requestChecksumCalculation: "WHEN_REQUIRED",
+  responseChecksumValidation: "WHEN_REQUIRED",
+});
 
 export default function EventManagement() {
   const { id: eventId } = useParams();
@@ -60,7 +74,15 @@ export default function EventManagement() {
       
       // ✅ ปรับปรุง: ตรวจสอบว่ามี version หรือไม่ก่อนตั้งค่า URL
       if (event.watermark_version) {
-        const { data: { publicUrl } } = supabase.storage.from('raw').getPublicUrl(`${event.id}/watermark.png`);
+        const bucket = process.env.NEXT_PUBLIC_DO_SPACES_BUCKET || 'face-grid-storage';
+        // ตัด https:// ออกถ้ามี เพื่อนำไปประกอบ URL
+        const endpoint = (process.env.NEXT_PUBLIC_DO_SPACES_ENDPOINT || 'sgp1.digitaloceanspaces.com').replace('https://', '');
+        
+        // Key ต้องตรงกับตอน Upload: face-grid-storage/{eventId}/watermark.png
+        const key = `face-grid-storage/${event.id}/watermark.png`;
+        
+        // Format: https://bucket.endpoint/key
+        const publicUrl = `https://${bucket}.${endpoint}/${key}`;
         setWatermarkUrl(`${publicUrl}?v=${event.watermark_version}`); 
       } else {
         setWatermarkUrl(null);
@@ -119,15 +141,46 @@ export default function EventManagement() {
   const handleWatermarkUpload = async (e) => {
     const file = e.target.files[0];
     if (!file || file.type !== 'image/png') return alert('กรุณาอัปโหลดไฟล์ .png เท่านั้น');
+    
     try {
       setIsUploading(true);
-      const { error: uploadError } = await supabase.storage.from('raw').upload(`${event.id}/watermark.png`, file, { upsert: true, contentType: 'image/png' });
-      if (uploadError) throw uploadError;
-      await supabase.from('events').update({ watermark_version: Math.floor(Date.now() / 1000) }).eq('id', event.id);
-      alert('อัปโหลดลายน้ำสำเร็จ');
+
+      // 1. Upload to DO Spaces
+      // Path: face-grid-storage/{eventId}/watermark.png
+      const command = new PutObjectCommand({
+        Bucket: process.env.NEXT_PUBLIC_DO_SPACES_BUCKET || 'face-grid-storage',
+        Key: `face-grid-storage/${event.id}/watermark.png`, 
+        Body: file,
+        ContentType: 'image/png',
+        ACL: 'public-read' // เพื่อให้ Frontend อ่านรูปมา Preview ได้ (ถ้า Bucket ไม่ได้เปิด Public)
+      });
+
+      await s3Client.send(command);
+
+      // 2. Update DB (Trigger Worker & Save State)
+      // อัปเดต version เพื่อแก้ปัญหา caching และเปิดใช้งาน watermark
+      const newVersion = Math.floor(Date.now() / 1000);
+      const { error: dbError } = await supabase.from('events').update({ 
+        watermark_enabled: true,
+        watermark_version: newVersion,
+        // อัปเดตค่าปัจจุบันไปด้วย เพื่อให้ข้อมูลตรงกัน
+        watermark_opacity: watermarkOpacity,
+        watermark_size: watermarkSize,
+        watermark_position: watermarkPosition
+      }).eq('id', event.id);
+
+      if (dbError) throw dbError;
+
+      alert('อัปโหลดลายน้ำสำเร็จ และเปิดใช้งานเรียบร้อย');
       fetchData();
-    } catch (err) { alert('Upload Error: ' + err.message); } finally { setIsUploading(false); }
+    } catch (err) { 
+      console.error(err);
+      alert('Upload Error: ' + err.message); 
+    } finally { 
+      setIsUploading(false); 
+    }
   };
+
 
   const handleSaveWatermarkSettings = async () => {
     try {
@@ -376,11 +429,12 @@ export default function EventManagement() {
                 <div className="absolute" style={{ ...getPreviewPositionStyles(), opacity: watermarkOpacity }}>
                   {watermarkUrl && event?.watermark_version ? (
                     <img 
-                      src={watermarkUrl} 
-                      alt="Watermark" 
-                      className={`h-auto object-contain brightness-110 drop-shadow-2xl ${isResizing ? 'ring-2 ring-blue-500/50' : ''}`} 
-                      style={{ width: isResizing ? `${watermarkSize}px` : '200px' }} 
-                    />
+                    src={watermarkUrl} 
+                    alt="Watermark" 
+                    className={`h-auto object-contain brightness-110 drop-shadow-2xl ${isResizing ? 'ring-2 ring-blue-500/50' : ''}`} 
+                    // ✅ แก้ไข: ให้ใช้ขนาด watermarkSize ตลอดเวลา (ไม่ต้องมี condition isResizing)
+                    style={{ width: `${watermarkSize}px` }} 
+                  />
                   ) : null}
                 </div>
               </div>
