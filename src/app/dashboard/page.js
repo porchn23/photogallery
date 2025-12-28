@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Header from '@/src/components/Header';
 import { 
   Plus, Camera, Users, Calendar, Zap, Copy, 
-  Loader2, ShieldCheck, CheckCircle2, UserCheck, Crown 
+  Loader2, ShieldCheck, CheckCircle2, UserCheck, Crown, Image as ImageIcon 
 } from 'lucide-react';
 import { formatThaiDate } from '@/src/lib/utils';
 import { logEvent } from '@/src/lib/axiom'; 
@@ -30,15 +30,16 @@ export default function Dashboard() {
   async function fetchInitialData() {
     setLoading(true);
     try {
+      // 1. Get User
       const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (!authUser) {
-        router.push('/login');
-        return;
-      }
+      if (!authUser) { router.push('/login'); return; }
 
+      // 2. Get User Details
       const { data: userData } = await supabase.from('users').select('*').eq('id', authUser.id).single();
       if (userData) {
         setUser(userData);
+
+        // 3. Get Events (Owned + Joined) - เหมือนเดิม
         const { data: ownedRes } = await supabase.from('events').select('*').eq('owner_id', authUser.id);
         const ownedEvents = (ownedRes || []).map(ev => ({ ...ev, userRole: 'owner' }));
 
@@ -55,7 +56,40 @@ export default function Dashboard() {
           .filter((v, i, a) => a.findIndex(t => t.id === v.id) === i)
           .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-        setEvents(allEvents);
+        // ✅ 4. Fetch Extra Data: Active Cameras & Photo Counts
+        const eventIds = allEvents.map(e => e.id);
+        
+        if (eventIds.length > 0) {
+            // 4.1 ดึงกล้องที่ Active อยู่
+            const { data: activeCams } = await supabase
+                .from('event_cameras')
+                .select('event_id, cameras(nickname)')
+                .in('event_id', eventIds)
+                .eq('status', 'active');
+
+            // 4.2 ดึงจำนวนรูปภาพ (ใช้ rpc หรือ query ทั้งหมดแล้วนับอาจจะหนัก ถ้าดีสุดควรมี field photo_count ใน events แต่ตอนนี้ใช้วิธีดึง id มานับ)
+            // หมายเหตุ: เพื่อประสิทธิภาพ ถ้า event เยอะควรแก้ Database แต่เบื้องต้นใช้วิธีดึงเฉพาะ ID มานับ
+            const { data: photoData } = await supabase
+                .from('photos')
+                .select('event_id')
+                .in('event_id', eventIds);
+
+            // 5. Map Data กลับเข้าไปใน Events
+            const eventsWithDetails = allEvents.map(ev => {
+                const cams = activeCams?.filter(c => c.event_id === ev.id).map(c => c.cameras?.nickname).filter(Boolean) || [];
+                const pCount = photoData?.filter(p => p.event_id === ev.id).length || 0;
+                
+                return {
+                    ...ev,
+                    activeCamerasList: cams,
+                    totalPhotos: pCount
+                };
+            });
+
+            setEvents(eventsWithDetails);
+        } else {
+            setEvents(allEvents);
+        }
       }
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -214,15 +248,25 @@ export default function Dashboard() {
                 return (
                   <Link key={event.id} href={`/dashboard/event/${event.id}`} className="group">
                     <div className={`p-6 md:p-8 bg-white dark:bg-zinc-900 border ${isOwner ? 'border-zinc-200 dark:border-zinc-800' : 'border-dashed border-zinc-300 dark:border-zinc-700'} rounded-[2.5rem] flex flex-col md:flex-row justify-between items-start md:items-center hover:shadow-xl transition-all duration-300 gap-6`}>
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-3">
-                          <h3 className="font-medium text-2xl md:text-3xl tracking-tight group-hover:text-blue-600 transition-colors leading-none">{event.title}</h3>
-                          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${isOwner ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/20' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/20'}`}>
-                            {isOwner ? <Crown size={10} fill="currentColor" /> : <UserCheck size={10} />}
-                            {isOwner ? 'Owner' : 'Joiner'}
-                          </div>
+                      <div className="space-y-4 w-full"> {/* ✅ เพิ่ม w-full */}
+                        <div className="flex items-center justify-between w-full"> {/* ✅ จัด Header ให้ชิดขอบ */}
+                            <div className="flex items-center gap-3">
+                                <h3 className="font-medium text-2xl md:text-3xl tracking-tight group-hover:text-blue-600 transition-colors leading-none">{event.title}</h3>
+                                <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${isOwner ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/20' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/20'}`}>
+                                    {isOwner ? <Crown size={10} fill="currentColor" /> : <UserCheck size={10} />}
+                                    {isOwner ? 'Owner' : 'Joiner'}
+                                </div>
+                            </div>
+                            
+                            {/* ✅ ปุ่ม Action ย้ายมาอยู่ตรงนี้ เพื่อให้ Layout สวยขึ้นบนมือถือ */}
+                            <div className={`hidden md:block px-6 py-3 ${isOwner ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-black' : 'bg-blue-600 text-white'} text-[10px] font-black uppercase tracking-[0.2em] rounded-xl shadow-lg`}>
+                                {isOwner ? 'Manage' : 'View'}
+                            </div>
                         </div>
+
+                        {/* Status Bar */}
                         <div className="flex flex-wrap items-center gap-3">
+                           {/* ... existing join_code & status chips ... */}
                           <div className="flex items-center gap-2 px-3 py-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl">
                             <Zap size={12} className="text-blue-500" fill="currentColor" />
                             <span className="text-[10px] font-black uppercase tracking-widest">{event.join_code}</span>
@@ -230,14 +274,37 @@ export default function Dashboard() {
                           <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border border-zinc-100 dark:border-zinc-800 ${status.bg}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} /><span className={`text-[10px] font-black uppercase tracking-widest ${status.color}`}>{status.label}</span>
                           </div>
-                          <div className="flex items-center gap-2 text-zinc-400 font-bold text-xs ml-2">
-                            <Calendar size={14} />
-                            <span>{formatThaiDate(event.start_time)}</span>
-                          </div>
                         </div>
-                      </div>
-                      <div className={`px-8 py-4 ${isOwner ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-black' : 'bg-blue-600 text-white'} text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl shadow-lg active:scale-95 transition-all`}>
-                        {isOwner ? 'Manage Job' : 'View Job'}
+
+                        {/* ✅ New: Camera & Photo Stats */}
+                        <div className="flex items-center gap-4 pt-2 border-t border-zinc-100 dark:border-zinc-800/50">
+                            {/* Active Cameras */}
+                            <div className="flex items-center gap-2 text-zinc-500">
+                                <Camera size={14} className={event.activeCamerasList?.length > 0 ? "text-green-500" : "text-zinc-300"} />
+                                <span className="text-xs font-medium">
+                                    {event.activeCamerasList && event.activeCamerasList.length > 0 
+                                        ? event.activeCamerasList.join(', ') 
+                                        : 'No Active Camera'}
+                                </span>
+                            </div>
+                            
+                            <div className="h-3 w-[1px] bg-zinc-200 dark:bg-zinc-700" />
+
+                            {/* Photo Count */}
+                            <div className="flex items-center gap-2 text-zinc-500">
+                                <ImageIcon size={14} />
+                                <span className="text-xs font-medium">{event.totalPhotos?.toLocaleString() || 0} Photos</span>
+                            </div>
+
+                             <div className="h-3 w-[1px] bg-zinc-200 dark:bg-zinc-700" />
+                             
+                             {/* Date */}
+                             <div className="flex items-center gap-2 text-zinc-400 font-bold text-xs">
+                                <Calendar size={14} />
+                                <span>{formatThaiDate(event.start_time)}</span>
+                             </div>
+                        </div>
+
                       </div>
                     </div>
                   </Link>

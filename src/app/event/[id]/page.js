@@ -9,6 +9,7 @@ import FaceBar from '@/src/components/FaceBar';
 import PhotoGrid from '@/src/components/PhotoGrid';
 import PhotoModal from '@/src/components/PhotoModal';
 import QRModal from '@/src/components/QRModal';
+import { Clock, AlertTriangle } from 'lucide-react'; // ✅ เพิ่ม Icon
 
 /**
  * AI FACE-GRID: EVENT GALLERY PAGE
@@ -19,6 +20,7 @@ import QRModal from '@/src/components/QRModal';
 export default function EventGallery() {
   const params = useParams();
   const eventId = params?.id;
+  const [eventStatus, setEventStatus] = useState('loading'); 
 
   // --- STATE ---
   const [clusters, setClusters] = useState([]);
@@ -81,9 +83,10 @@ export default function EventGallery() {
   }
 
   async function fetchEventDetails() {
+    // ✅ ดึง storage_days เพิ่ม
     const { data } = await supabase
       .from('events')
-      .select('title, start_time, join_code, users!events_owner_id_fkey(full_name)')
+      .select('title, start_time, join_code, storage_days, created_at, users!events_owner_id_fkey(full_name)')
       .eq('id', eventId)
       .single();
 
@@ -94,6 +97,22 @@ export default function EventGallery() {
         joinCode: data.join_code,
         ownerName: data.users?.full_name || 'RoopLife'
       });
+
+      // ✅ คำนวณสถานะ Event
+      const now = new Date();
+      const start = new Date(data.start_time);
+      const expiry = new Date(start.getTime() + ((data.storage_days || 2) * 24 * 60 * 60 * 1000));
+
+      if (now < start) {
+        setEventStatus('not_started');
+      } else if (now > expiry) {
+        setEventStatus('expired');
+      } else {
+        setEventStatus('active');
+      }
+    } else {
+       // กรณีไม่เจองาน
+       setEventStatus('expired'); 
     }
   }
 
@@ -182,7 +201,50 @@ export default function EventGallery() {
         setClusters(clusterList);
       }
     }
+
     setLoading(false);
+  }
+
+// ---------------------------------------------------------
+  // ✅ โค้ดส่วนนี้ต้องอยู่นอกฟังก์ชัน fetchEventData แต่อยู่ใน Component
+  // ---------------------------------------------------------
+  if (eventStatus === 'not_started') {
+    return (
+      <div className="fixed inset-0 bg-black text-white flex flex-col items-center justify-center p-8 text-center font-sans">
+        <div className="w-20 h-20 bg-zinc-900 rounded-full flex items-center justify-center mb-6 animate-pulse">
+          <Clock size={40} className="text-amber-500" />
+        </div>
+        <h1 className="text-2xl font-bold mb-2">{eventInfo.title}</h1>
+        <p className="text-zinc-400 mb-8">งานนี้ยังไม่เริ่มต้น</p>
+        <div className="bg-zinc-900/50 p-6 rounded-2xl border border-zinc-800">
+            <p className="text-xs text-zinc-500 uppercase tracking-widest mb-2">กำหนดการ</p>
+            <p className="text-xl font-mono text-amber-500">
+                { eventInfo.start ? eventInfo.start.toLocaleString('th-TH', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                }) : '-'}
+            </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (eventStatus === 'expired') {
+    return (
+      <div className="fixed inset-0 bg-black text-white flex flex-col items-center justify-center p-8 text-center font-sans">
+        <div className="w-20 h-20 bg-zinc-900 rounded-full flex items-center justify-center mb-6">
+          <AlertTriangle size={40} className="text-red-500" />
+        </div>
+        <h1 className="text-2xl font-bold mb-2">{eventInfo.title}</h1>
+        <p className="text-zinc-400 mb-8">ขออภัย งานนี้หมดอายุการจัดเก็บแล้ว</p>
+        <button onClick={() => window.location.reload()} className="px-8 py-3 bg-white text-black font-bold rounded-full text-sm uppercase tracking-widest hover:bg-zinc-200 transition-colors">
+            ลองใหม่อีกครั้ง
+        </button>
+      </div>
+    );
   }
 
   return (

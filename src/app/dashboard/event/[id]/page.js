@@ -302,12 +302,29 @@ export default function EventManagement() {
   };
 
   const getEventDates = () => {
-    if (!event?.created_at) return { start: null, expiry: null, isExpired: false, daysRemaining: 0 };
-    const createdAt = new Date(event.created_at);
-    const expiry = new Date(createdAt.getTime() + ((event.storage_days || 2) * 24 * 60 * 60 * 1000));
+    // ถ้าไม่มีข้อมูลพื้นฐาน ให้ return ค่า default
+    if (!event?.start_time) return { start: null, expiry: null, isExpired: false, daysRemaining: 0 };
+    
     const now = new Date();
-    const daysRemaining = Math.max(0, Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-    return { start: new Date(event.start_time), expiry, isExpired: now > expiry, daysRemaining };
+    const start = new Date(event.start_time);
+    
+    // ✅ แก้ไข: วันหมดอายุควรนับจาก "วันเริ่มงาน" (start_time) ไม่ใช่วันที่สร้าง (created_at)
+    // สูตร: วันหมดอายุ = วันเริ่มงาน + จำนวนวันที่เก็บรักษา (Storage Days)
+    const expiry = new Date(start.getTime() + ((event.storage_days || 2) * 24 * 60 * 60 * 1000));
+    
+    // คำนวณสถานะหมดอายุ
+    // Event จะถือว่าหมดอายุต่อเมื่อ:
+    // 1. เวลาปัจจุบันเลยกำหนดวันหมดอายุแล้ว (now > expiry)
+    const isExpired = now.getTime() > expiry.getTime();
+
+    // คำนวณวันคงเหลือ
+    let daysRemaining = 0;
+    if (!isExpired) {
+        // ถ้ายังไม่หมดอายุ ให้คำนวณจาก (วันหมดอายุ - ปัจจุบัน)
+        daysRemaining = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    }
+
+    return { start, expiry, isExpired, daysRemaining };
   };
 
   const { expiry, isExpired, daysRemaining } = getEventDates();
