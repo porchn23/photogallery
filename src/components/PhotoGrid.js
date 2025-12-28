@@ -62,17 +62,22 @@ export default function PhotoGrid({ photos, loading, onPhotoClick }) {
             )}
 
             {/* ✅ Download Button - แสดงเมื่อ Hover (หรือตลอดเวลาบนมือถือถ้าต้องการปรับ) */}
-            {/* ✅ Download Button - Mobile: Show Always / Desktop: Show on Hover */}
             <button 
                 onClick={(e) => handleDownload(e, photo)}
-                className="absolute bottom-1 right-1 z-20 p-2 bg-black/40 hover:bg-black/70 backdrop-blur-md rounded-full text-white/80 hover:text-white transition-all 
-                opacity-100 translate-y-0 
-                lg:opacity-0 lg:group-hover:opacity-100 lg:translate-y-2 lg:group-hover:translate-y-0"
+                className="absolute z-20 bg-black/40 hover:bg-black/70 backdrop-blur-md rounded-full text-white/90 hover:text-white transition-all 
+                
+                /* Mobile Styles (Default) */
+                opacity-100 p-3 bottom-3 left-1/2 -translate-x-1/2 shadow-lg active:scale-90
+                
+                /* Desktop Styles (lg breakpoint) */
+                lg:opacity-0 lg:group-hover:opacity-100 lg:p-2 lg:bottom-1 lg:left-auto lg:right-1 lg:translate-x-0 lg:translate-y-2 lg:group-hover:translate-y-0 lg:shadow-none"
+                
                 title="Download"
             >
-                <Download size={14} />
+                {/* Mobile Icon Size = 18 / Desktop Icon Size = 14 */}
+                <Download className="w-5 h-5 lg:w-3.5 lg:h-3.5" />
             </button>
-            
+
             {/* Overlay Gradient */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
           </div>
