@@ -71,26 +71,24 @@ export default function PhotoModal({ photo, allPhotos, onClose, onPhotoChange, e
   if (!photo || !allPhotos) return null;
 
  // ตัวอย่างฟังก์ชันสำหรับปุ่ม Download ใน PhotoModal.js
-const handleDownload = async (imageUrl, fileName) => {
-  try {
-    const response = await fetch(imageUrl);
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
+  // ✅ แก้ไขฟังก์ชัน Download ให้เรียก API
+  const handleDownload = (e) => {
+    e.stopPropagation();
+    if (!photo) return;
+
+    const filename = `rooplife-${photo.id}.jpg`;
     
+    // เรียก API Proxy เพื่อเลี่ยง CORS และปัญหา Private File
+    const downloadUrl = `/api/download?url=${encodeURIComponent(photo.url_raw)}&filename=${encodeURIComponent(filename)}`;
+    
+    // สร้าง Link ชั่วคราว
     const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName || `rooplife-photo-${Date.now()}.jpg`; // ตั้งชื่อไฟล์
+    link.href = downloadUrl;
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
-    
     document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-  } catch (err) {
-    console.error('Download failed:', err);
-    // Fallback: เปิด Tab ใหม่ถ้า fetch ไม่ได้
-    window.open(imageUrl, '_blank');
-  }
-};
+  };
 
   return (
     <div 

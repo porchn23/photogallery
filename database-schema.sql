@@ -1,6 +1,18 @@
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
 
+CREATE TABLE public.ai_models (
+  id integer NOT NULL DEFAULT nextval('ai_models_id_seq'::regclass),
+  name text NOT NULL,
+  code text NOT NULL UNIQUE,
+  provider text DEFAULT 'replicate'::text,
+  model_path text NOT NULL,
+  description text,
+  price_per_photo numeric NOT NULL DEFAULT 0.00,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT ai_models_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.cameras (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   serial_number text NOT NULL,
@@ -46,10 +58,12 @@ CREATE TABLE public.event_cameras (
   user_id uuid,
   camera_id uuid NOT NULL,
   ai_beauty_enabled boolean DEFAULT false,
+  ai_model_id integer DEFAULT 1,
   CONSTRAINT event_cameras_pkey PRIMARY KEY (id),
   CONSTRAINT event_cameras_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id),
   CONSTRAINT fk_camera_photographer FOREIGN KEY (user_id) REFERENCES public.users(id),
-  CONSTRAINT fk_event_cameras_camera FOREIGN KEY (camera_id) REFERENCES public.cameras(id)
+  CONSTRAINT fk_event_cameras_camera FOREIGN KEY (camera_id) REFERENCES public.cameras(id),
+  CONSTRAINT event_cameras_ai_model_id_fkey FOREIGN KEY (ai_model_id) REFERENCES public.ai_models(id)
 );
 CREATE TABLE public.event_members (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -117,6 +131,18 @@ CREATE TABLE public.photos (
   ai_beauty boolean DEFAULT false,
   CONSTRAINT photos_pkey PRIMARY KEY (id),
   CONSTRAINT photos_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id)
+);
+CREATE TABLE public.processing_jobs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  event_id uuid NOT NULL,
+  camera_serial text NOT NULL,
+  temp_path text NOT NULL,
+  file_name text NOT NULL,
+  status text DEFAULT 'pending'::text,
+  error_message text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT processing_jobs_pkey PRIMARY KEY (id),
+  CONSTRAINT processing_jobs_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id)
 );
 CREATE TABLE public.users (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
