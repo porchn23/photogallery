@@ -22,6 +22,8 @@ export default function Dashboard() {
   const [startTime, setStartTime] = useState('');
   const [joinCodeInput, setJoinCodeInput] = useState('');
   const [error, setError] = useState('');
+  const [fees, setFees] = useState({}); // ✅ เพิ่ม state เก็บราคา
+
 
   useEffect(() => {
     fetchInitialData();
@@ -45,6 +47,14 @@ export default function Dashboard() {
 
         const { data: membershipRes } = await supabase.from('event_members').select('event_id').eq('user_id', authUser.id);
         const joinedIds = membershipRes?.map(m => m.event_id) || [];
+
+
+      // ✅ เพิ่ม: ดึงราคาจาก Database
+      const { data: feesData } = await supabase.from('service_fees').select('service_key, price');
+      const feesMap = {};
+      feesData?.forEach(f => feesMap[f.service_key] = f.price);
+      setFees(feesMap); // เก็บลง State
+
         
         let joinedEvents = [];
         if (joinedIds.length > 0) {
@@ -101,16 +111,20 @@ export default function Dashboard() {
   const handleCreateEvent = async (e) => {
     e.preventDefault();
     setError('');
-    if (!user || user.wallet_balance < 100) {
-      setError('ยอดเงินไม่พอ (ต้องการ 100 THB)');
+    const cost = fees.create_event || 199;
+
+    if (!user || user.wallet_balance < cost) {
+      setError(`ยอดเงินไม่พอ (ต้องการ ${cost} THB)`); // ✅ แจ้งเตือนตามราคาจริง
       return;
     }
+
+
     try {
       const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
       const startTimeISO = startTime ? new Date(startTime).toISOString() : null;
 
-      await supabase.from('users').update({ wallet_balance: user.wallet_balance - 100 }).eq('id', user.id);
-      
+      await supabase.from('users').update({ wallet_balance: user.wallet_balance - cost }).eq('id', user.id);
+
       const { data: newEvent, error: eventError } = await supabase.from('events').insert({ 
         owner_id: user.id, 
         title: newTitle, 
@@ -128,9 +142,9 @@ export default function Dashboard() {
         user_name: user.full_name,
         event_id: newEvent?.id,
         event_title: newTitle,
-        cost: 100,
+        cost: cost,
         balance_before: user.wallet_balance,
-        balance_after: user.wallet_balance - 100
+        balance_after: user.wallet_balance - cost
       });
 
       setIsCreating(false);
@@ -221,7 +235,7 @@ export default function Dashboard() {
           >
             <div className="w-14 h-14 bg-white/10 dark:bg-black/5 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"><Plus size={28} /></div>
             <span className="font-medium text-lg tracking-tight">Create Event</span>
-            <span className="text-zinc-400 dark:text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1">100 THB / Job</span>
+            <span className="text-zinc-400 dark:text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1">{fees.create_event ? fees.create_event : '...'} THB / Job</span>
           </button>
           <Link href="/dashboard/garage" className="group flex flex-col items-center justify-center p-10 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] hover:scale-[1.02] transition-all shadow-sm hover:shadow-md">
             <div className="w-14 h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-zinc-400 group-hover:text-blue-500 transition-colors mb-4 group-hover:scale-110 transition-transform"><Camera size={28} /></div>
@@ -324,7 +338,7 @@ export default function Dashboard() {
             <div className="text-center mb-10">
               <h2 className="text-3xl font-medium mb-2 tracking-tight">New Event</h2>
               <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-full border border-blue-100 dark:border-blue-800 mb-6">
-                <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">ค่าบริการ ฿100 ต่ออีเวนต์</span>
+                <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">ค่าบริการ ฿{fees.create_event || '...'} ต่ออีเวนต์</span>
               </div>
               <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-3xl p-6 text-left space-y-3 mb-8">
                 <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2">Package Inclusions:</p>
@@ -366,7 +380,7 @@ export default function Dashboard() {
               </div>
               {error && <p className="text-red-500 text-[10px] font-bold bg-red-50 dark:bg-red-900/20 p-3 rounded-xl uppercase tracking-widest text-center">⚠️ {error}</p>}
               <div className="flex flex-col items-center gap-6 pt-6">
-                <button type="submit" className="w-full py-5 bg-zinc-950 dark:bg-zinc-100 text-white dark:text-black font-semibold rounded-3xl shadow-xl uppercase text-[10px] tracking-[0.3em] hover:scale-[1.02] active:scale-95 transition-all">Create Event (฿100)</button>
+                <button type="submit" className="w-full py-5 bg-zinc-950 dark:bg-zinc-100 text-white dark:text-black font-semibold rounded-3xl shadow-xl uppercase text-[10px] tracking-[0.3em] hover:scale-[1.02] active:scale-95 transition-all">Create Event (฿{fees.create_event || '...'})</button>
                 <button type="button" onClick={() => setIsCreating(false)} className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 font-bold uppercase text-[10px] tracking-[0.3em] transition-colors">Cancel & Close</button>
               </div>
             </form>

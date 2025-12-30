@@ -59,6 +59,7 @@ export default function EventManagement() {
   const [watermarkPosition, setWatermarkPosition] = useState('southeast');
   const [isUploading, setIsUploading] = useState(false);
   const [watermarkUrl, setWatermarkUrl] = useState(null);
+  const [fees, setFees] = useState({}); // ✅ เพิ่ม state เก็บราคา
   
   // ✅ AI Models State
   const [aiModels, setAiModels] = useState([]);
@@ -98,6 +99,12 @@ export default function EventManagement() {
       setLoading(true);
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (!authUser) { router.push('/login'); return; }
+      
+      // ✅ เพิ่ม: ดึงราคา Service Fees
+      const { data: feesData } = await supabase.from('service_fees').select('service_key, price');
+      const feesMap = {};
+      feesData?.forEach(f => feesMap[f.service_key] = f.price);
+      setFees(feesMap);
 
       let realId = eventId;
       if (eventId.length < 30) {
@@ -218,14 +225,21 @@ export default function EventManagement() {
   };
 
   const handleAddSlot = async () => {
-    if (!isOwner || isExpired || !user || user.wallet_balance < 50) return alert('เงินไม่พอหรือตรวจสอบสิทธิ์');
-    if (!confirm('ซื้อ Slot เพิ่ม (50 THB)?')) return;
+    const cost = fees.add_slot || '...'; 
+
+    if (!isOwner || isExpired || !user || user.wallet_balance < cost) return alert('เงินไม่พอหรือตรวจสอบสิทธิ์');
+    if (!confirm(`ซื้อ Slot เพิ่ม (${cost} THB)?`)) return; // ✅ Confirm ราคาจริง
     try {
-      await supabase.from('users').update({ wallet_balance: user.wallet_balance - 50 }).eq('id', user.id);
+      await supabase.from('users').update({ wallet_balance: user.wallet_balance - cost }).eq('id', user.id);
       await supabase.from('events').update({ max_cameras: (event.max_cameras || 1) + 1 }).eq('id', event.id);
+
       logEvent('add_camera_slot', {
-        user_id: user.id, user_name: user.full_name, event_id: event.id, cost: 50,
-        balance_before: user.wallet_balance, balance_after: user.wallet_balance - 50,
+        user_id: user.id, 
+        user_name: user.full_name, 
+        event_id: event.id, 
+        cost: cost,
+        balance_before: user.wallet_balance, 
+        balance_after: user.wallet_balance - cost,
         new_total_slots: (event.max_cameras || 1) + 1
       });
       fetchData();
@@ -233,14 +247,17 @@ export default function EventManagement() {
   };
 
   const handleExtendStorage = async () => {
-    if (!isOwner || !user || user.wallet_balance < 50) return alert('เงินไม่พอ');
-    if (!confirm('ต่ออายุเพิ่ม 1 วัน (50 THB)?')) return;
+    const cost = fees.extend_storage || 50;
+
+    if (!isOwner || !user || user.wallet_balance < cost) return alert('เงินไม่พอ');
+    if (!confirm(`ต่ออายุเพิ่ม 1 วัน (${cost} THB)?`)) return; // ✅ Confirm ราคาจริง
+
     try {
-      await supabase.from('users').update({ wallet_balance: user.wallet_balance - 50 }).eq('id', user.id);
+      await supabase.from('users').update({ wallet_balance: user.wallet_balance - cost }).eq('id', user.id);
       await supabase.from('events').update({ storage_days: (event.storage_days || 2) + 1 }).eq('id', event.id);
       logEvent('extend_storage', {
-        user_id: user.id, user_name: user.full_name, event_id: event.id, cost: 50,
-        balance_before: user.wallet_balance, balance_after: user.wallet_balance - 50,
+        user_id: user.id, user_name: user.full_name, event_id: event.id, cost: cost,
+        balance_before: user.wallet_balance, balance_after: user.wallet_balance - cost,
         new_total_days: (event.storage_days || 2) + 1
       });
       fetchData();
@@ -420,17 +437,17 @@ export default function EventManagement() {
                       const selectedModel = aiModels.find(m => m.id === (ac.ai_model_id || 1)) || aiModels[0];
                       
                       return (
-                        <div className="mt-3 py-2 px-3 bg-pink-50 dark:bg-pink-900/10 rounded-xl border border-pink-100 dark:border-pink-900/30 animate-in fade-in zoom-in duration-300">
-                            {/* แสดง Description */}
+                        <div className="mt-4 py-3 px-4 bg-pink-50 dark:bg-pink-900/10 rounded-2xl border border-pink-100 dark:border-pink-900/30 animate-in fade-in zoom-in duration-300">
+                            {/* แสดง Description - ปรับ font ใหญ่ขึ้นเป็น text-[10px] หรือ text-xs */}
                             {selectedModel?.description && (
-                                <p className="text-[9px] text-zinc-500 dark:text-zinc-400 mb-1 leading-relaxed">
+                                <p className="text-[10px] sm:text-xs text-zinc-600 dark:text-zinc-300 mb-2 leading-relaxed font-medium">
                                     {selectedModel.description}
                                 </p>
                             )}
                             
-                            {/* แสดงราคา */}
-                            <p className="text-[9px] text-pink-600 dark:text-pink-400 font-bold flex items-center gap-1.5">
-                                <Sparkles size={10} fill="currentColor" /> 
+                            {/* แสดงราคา - ปรับ font ใหญ่ขึ้นและหนาขึ้น */}
+                            <p className="text-[10px] sm:text-xs text-pink-600 dark:text-pink-400 font-bold flex items-center gap-2">
+                                <Sparkles size={14} fill="currentColor" /> 
                                 มีค่าใช้จ่าย {selectedModel?.price_per_photo || '1.2'} บาท/รูป
                             </p>
                         </div>
@@ -447,7 +464,7 @@ export default function EventManagement() {
             {Array.from({ length: Math.max(0, (event?.max_cameras || 0) - activeCameras.length) }).map((_, i) => (
               <button key={`empty-${i}`} disabled={isExpired} onClick={() => setIsCheckInOpen(true)} className={`min-h-[140px] border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${isExpired ? 'opacity-10' : 'bg-zinc-50/50 dark:bg-zinc-900/10 border-zinc-200 dark:border-zinc-800 hover:bg-white hover:border-blue-400'}`}><div className="w-8 h-8 rounded-full border border-zinc-300 dark:border-zinc-700 flex items-center justify-center text-zinc-400"><Plus size={16} /></div><span className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-400">Connect Slot</span></button>
             ))}
-            {isOwner && (<button onClick={handleAddSlot} disabled={isExpired} className={`min-h-[140px] border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${isExpired ? 'opacity-10' : 'bg-blue-50/20 dark:bg-blue-900/5 border-blue-100 dark:border-blue-500/20 hover:bg-white hover:border-blue-500'}`}><div className="w-8 h-8 rounded-full border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-500"><Plus size={16} /></div><div className="text-center"><span className="text-[10px] font-medium uppercase tracking-[0.2em] text-blue-600 block">Buy Slot</span><span className="text-[11px] font-medium text-blue-400">฿50</span></div></button>)}
+            {isOwner && (<button onClick={handleAddSlot} disabled={isExpired} className={`min-h-[140px] border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-2 transition-all ${isExpired ? 'opacity-10' : 'bg-blue-50/20 dark:bg-blue-900/5 border-blue-100 dark:border-blue-500/20 hover:bg-white hover:border-blue-500'}`}><div className="w-8 h-8 rounded-full border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-500"><Plus size={16} /></div><div className="text-center"><span className="text-[10px] font-medium uppercase tracking-[0.2em] text-blue-600 block">Buy Slot</span><span className="text-[11px] font-medium text-blue-400">฿{fees.add_slot || '...'}</span></div></button>)}
           </div>
         </section>
 
@@ -505,7 +522,7 @@ export default function EventManagement() {
             <div className="flex flex-col gap-4">
               {isOwner ? (
                 <div className="bg-white/5 border border-white/5 p-6 rounded-3xl backdrop-blur-sm text-center">
-                  <p className="text-xs text-zinc-400 mb-4 font-medium italic text-center">ขยายเวลาจัดเก็บรูปภาพ ฿50 ต่อ 1 วัน</p>
+                  <p className="text-xs text-zinc-400 mb-4 font-medium italic text-center">ขยายเวลาจัดเก็บรูปภาพ ฿ {fees.extend_storage || '...'} ต่อ 1 วัน</p>
                   <button onClick={handleExtendStorage} className="w-full py-5 bg-white text-black font-semibold rounded-2xl text-[11px] uppercase tracking-[0.2em] hover:bg-blue-500 hover:text-white transition-all shadow-xl shadow-white/5">Extend Storage</button>
                 </div>
               ) : (
