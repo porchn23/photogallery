@@ -1,4 +1,4 @@
-import { QrCode, Wallet, LogOut, User, HelpCircle } from 'lucide-react';
+import { QrCode, Wallet, LogOut, User, HelpCircle, Plus } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '@/src/lib/supabase';
@@ -27,7 +27,7 @@ export default function Header({ onQRClick, balance, user }) {
       <div className="px-4 md:px-6 h-18 md:h-24 flex items-center justify-between">
         {/* Logo & App Name Section */}
         <Link href="/dashboard" className="flex items-center gap-4 md:gap-5 group">
-          <div className="relative w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl overflow-hidden shadow-sm group-hover:shadow-md transition-all duration-300">
+        <div className="relative w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl overflow-hidden shadow-sm group-hover:shadow-md transition-all duration-300">
             <Image 
               src="/rooplife-logo/android-chrome-192x192.png"
               alt="ROOPLIFE Logo"
@@ -36,7 +36,8 @@ export default function Header({ onQRClick, balance, user }) {
               priority
             />
           </div>
-          <div className="flex flex-col">
+          {/* ✅ แก้ไข: เพิ่ม 'hidden md:flex' เพื่อซ่อนบนมือถือ */}
+          <div className="hidden md:flex flex-col">
             <h1 className={`text-base md:text-xl font-black tracking-tight leading-none ${
               isDashboard ? "text-zinc-900 dark:text-zinc-100" : "text-white"
             }`}>
@@ -51,19 +52,32 @@ export default function Header({ onQRClick, balance, user }) {
         <div className="flex items-center gap-2 md:gap-4">
           {/* ส่วน Account และ Wallet: แสดงเฉพาะเมื่ออยู่ในหน้า Dashboard เท่านั้น */}
           {isDashboard && (
-            <div className="flex items-center gap-2 bg-zinc-50 dark:bg-zinc-900/50 p-1.5 md:p-2 rounded-[1.5rem] border border-zinc-100 dark:border-zinc-800 shadow-sm">
+            <div className="flex items-center gap-2 bg-transparent md:bg-zinc-50 dark:bg-zinc-900/50 p-0 md:p-2 rounded-[1.5rem] border-none md:border border-zinc-100 dark:border-zinc-800 shadow-none md:shadow-sm">
               {/* Wallet Section */}
               {balance !== undefined && (
                 <Link href="/dashboard/wallet" className="flex items-center gap-2 px-3 py-1.5 hover:bg-white dark:hover:bg-zinc-800 rounded-xl transition-all border border-transparent hover:border-zinc-100 dark:hover:border-zinc-700">
-                  <div className="text-right hidden xs:block">
-                    <p className="text-[7px] font-bold text-zinc-400 uppercase tracking-widest leading-none mb-1">Balance</p>
-                    <p className="text-xs md:text-sm font-black text-green-600 dark:text-green-500 leading-none">
-                      ฿{balance.toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="w-8 h-8 bg-green-50 dark:bg-green-900/20 rounded-lg flex items-center justify-center text-green-600">
-                    <Wallet size={16} />
-                  </div>
+            {/* ✅ แก้ไข: ปรับโทนสีเป็นเขียว (Green Theme) */}
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 hover:bg-green-100 border border-green-200 rounded-full transition-all group cursor-pointer relative overflow-hidden">
+              
+              {/* Wallet Icon with Pulse Effect */}
+              <div className="relative">
+                 <div className="absolute inset-0 bg-green-400/30 rounded-full animate-ping opacity-0 group-hover:opacity-100 transition-opacity" />
+                 <Wallet size={16} className="text-green-600 group-hover:text-green-800 transition-colors relative z-10" />
+              </div>
+
+              {/* Credit Balance */}
+              <div className="flex flex-col items-end leading-none">
+                 <span className="text-[10px] text-green-600/70 font-bold uppercase tracking-wider">Credit</span>
+                 <span className="text-sm font-black text-green-800 tabular-nums">
+                   {typeof balance === 'number' ? balance.toLocaleString() : '0'}
+                 </span>
+              </div>
+
+              {/* Add Button (Visual Hint) */}
+              <div className="w-5 h-5 bg-green-600 text-white rounded-full flex items-center justify-center ml-1 group-hover:scale-110 transition-transform shadow-sm">
+                <Plus size={10} strokeWidth={4} />
+              </div>
+            </div>
                 </Link>
               )}
 

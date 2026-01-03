@@ -491,7 +491,10 @@ export default function EventManagement() {
                       src={watermarkUrl} 
                       alt="Watermark" 
                       className={`h-auto object-contain brightness-110 drop-shadow-2xl ${isResizing ? 'ring-2 ring-blue-500/50' : ''}`} 
-                      style={{ width: `${watermarkSize}px` }} 
+                      style={{ 
+                        width: `${watermarkSize}px`,
+                        maxWidth: '200px' 
+                      }} 
                     />
                   ) : null}
                 </div>

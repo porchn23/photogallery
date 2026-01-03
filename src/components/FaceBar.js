@@ -1,5 +1,6 @@
 'use client';
 import { Camera, ImageIcon, Calendar, Sparkles } from 'lucide-react';
+import FaceAvatar from './FaceAvatar'; 
 
 /**
  * AI FACE-GRID: FACE BAR COMPONENT
@@ -55,12 +56,6 @@ export default function FaceBar({
 
           {/* วงกลมใบหน้าคน */}
           {clusters.map((face) => {
-            const padding = 0.5; 
-            const zoomWidth = face.box ? face.box.Width + (face.box.Width * padding * 2) : 1;
-            const zoomHeight = face.box ? face.box.Height + (face.box.Height * padding * 2) : 1;
-            const offsetX = face.box ? face.box.Left - (face.box.Width * padding) : 0;
-            const offsetY = face.box ? face.box.Top - (face.box.Height * padding) : 0;
-
             const isSelected = selectedClusterId === face.id;
 
             return (
@@ -71,24 +66,11 @@ export default function FaceBar({
               >
                 <div className="relative mb-1">
                   <div className={`w-16 h-16 rounded-full overflow-hidden border-2 mb-1 relative bg-zinc-900 ${isSelected ? 'border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.4)]' : 'border-zinc-700'}`}>
-                    {face.url && face.box ? (
-                      <img
-                        src={face.url}
-                        className="absolute max-w-none transition-opacity duration-300"
-                        style={{
-                          width: `${100 / zoomWidth}%`,
-                          height: `${100 / zoomHeight}%`,
-                          top: `${-offsetY * (100 / zoomHeight)}%`,
-                          left: `${-offsetX * (100 / zoomWidth)}%`,
-                          imageRendering: 'smooth' 
-                        }}
-                        alt="Face"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-zinc-800">
-                        <ImageIcon size={20} className="text-zinc-600" />
-                      </div>
-                    )}
+                    <FaceAvatar 
+                        faceUrl={face.url} 
+                        box={face.box} 
+                        className="w-full h-full"
+                    />
                   </div>
 
                   {face.hero_score > 0 && (

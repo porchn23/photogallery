@@ -156,11 +156,18 @@ export default function EventGallery() {
       .from('photo_faces')
       .select('*')
       .in('photo_id', photoIds);
+
+    // 🔴 DEBUG: ขอดูปริ้นข้อมูล Mapping 1 ตัวแรกแบบเต็มๆ หน่อยครับ
+    if (mapping && mapping.length > 0) {
+      console.log("🔥 RAW DB MAPPING[0]:", JSON.stringify(mapping[0], null, 2));
+    }
+      
     
     if (mapping) setPhotoFaces(mapping);
 
     // 6. จัดการข้อมูล Face Clusters
     const activeClusterIds = [...new Set(mapping.map(m => m.cluster_id))];
+    console.log("DEBUG: activeClusterIds (raw):", activeClusterIds);
 
     if (activeClusterIds.length === 0) {
        setClusters([]); 
@@ -170,6 +177,9 @@ export default function EventGallery() {
         .select('id, latest_photo_id, hero_score, photos:latest_photo_id(url_thumb)')
         .in('id', activeClusterIds)
         .order('updated_at', { ascending: false });
+
+       console.log("DEBUG: faces data from DB:", faces); // 🔍 ดูว่าได้ข้อมูลจาก DB ไหม
+       
 
        if (faces && mapping) {
         const clusterList = faces.map(f => {
@@ -189,6 +199,15 @@ export default function EventGallery() {
           }
 
           const m = mapping.find(mi => mi.cluster_id === f.id && mi.photo_id === targetPhotoId);
+
+          // 🔍 Debug แต่ละ Face
+          console.log(`DEBUG Face ${f.id}:`, {
+            hasUrl: !!displayUrl,
+            hasBox: !!m?.bounding_box,
+            targetPhotoId,
+            box: m?.bounding_box
+          });
+
 
           return {
             id: f.id,
