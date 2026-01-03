@@ -9,7 +9,7 @@ export default function BeforeAfterSlider() {
   return (
     <div className="w-full max-w-4xl mx-auto aspect-[4/3] md:aspect-[16/9] relative rounded-3xl overflow-hidden shadow-2xl border border-white/10 group select-none">
       
-      {/* 1. รูป After (รูปแต่งแล้ว - Base Layer) */}
+      {/* 1. รูป After (รูปแต่งแล้ว) */}
       <div className="absolute inset-0">
          <Image 
            src="/Assets/before-after/after.jpg"
@@ -18,30 +18,32 @@ export default function BeforeAfterSlider() {
            className="object-cover"
            draggable={false}
            priority
+           unoptimized // ✅ เพิ่มตัวนี้: บังคับให้โหลดไฟล์ตรงๆ ไม่ผ่าน Image Optimization (เผื่อมีปัญหาเรื่อง Cache/Process)
          />
          <div className="absolute top-4 right-4 px-3 py-1 bg-blue-600/90 backdrop-blur text-white text-[10px] font-bold uppercase tracking-widest rounded-full z-10">
            AI Enhanced
          </div>
       </div>
 
-      {/* 2. รูป Before (รูปสด - Overlay Layer) */}
+      {/* 2. รูป Before (รูปสด) */}
       <div 
         className="absolute inset-0"
-        style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }} // ✅ ใช้ clip-path แทน width
+        style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
       >
          <Image 
            src="/Assets/before-after/before.jpg"
            alt="Before Original"
            fill
-           className="object-cover" // ใช้ object-cover เหมือนกันเป๊ะๆ
+           className="object-cover"
            draggable={false}
            priority
+           unoptimized // ✅ เพิ่มตัวนี้เหมือนกัน
          />
          <div className="absolute top-4 left-4 px-3 py-1 bg-black/60 backdrop-blur text-white text-[10px] font-bold uppercase tracking-widest rounded-full z-20">
            Original
          </div>
          
-         {/* เส้นแบ่ง (Border) */}
+         {/* เส้นแบ่ง */}
          <div className="absolute inset-y-0 right-0 w-0.5 bg-white/50"></div>
       </div>
 
@@ -50,9 +52,8 @@ export default function BeforeAfterSlider() {
          className="absolute top-0 bottom-0 w-1 bg-transparent cursor-ew-resize flex items-center justify-center z-20"
          style={{ left: `${sliderPosition}%` }}
       >
-                <div className="absolute inset-y-0 w-0.5 bg-white/80 shadow-[0_0_10px_rgba(0,0,0,0.2)]"></div>
-
-        <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-zinc-900 shadow-lg scale-100 group-hover:scale-110 transition-transform -ml-0.5"> {/* -ml-0.5 เพื่อ center handle */}
+        <div className="absolute inset-y-0 w-0.5 bg-white/80 shadow-[0_0_10px_rgba(0,0,0,0.2)]"></div>
+        <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-zinc-900 shadow-lg scale-100 group-hover:scale-110 transition-transform -ml-0.5 relative z-10">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18-6-6 6-6"/><path d="m15 6 6 6-6 6"/></svg>
         </div>
       </div>
