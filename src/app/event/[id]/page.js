@@ -214,7 +214,8 @@ export default function EventGallery() {
             url: displayUrl,
             box: m?.bounding_box,
             count: mapping.filter(mi => mi.cluster_id === f.id).length,
-            hero_score: f.hero_score || 0 
+            hero_score: f.hero_score || 0,
+            beauty_score: m?.beauty_score || 0
           };
         });
         setClusters(clusterList);

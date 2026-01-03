@@ -7,7 +7,7 @@ import {
   Zap, Camera, Users, ShieldCheck, 
   ArrowRight, CheckCircle2, Cloud, Sparkles, Lock,
   Globe, CreditCard, Settings, Plus, QrCode, FileImage, 
-  Star, BarChart3 // ✅ เพิ่ม Icon ใหม่
+  Star, BarChart3 
 } from 'lucide-react'
 
 // นำเข้า Background ที่ลื่นไหลและพริ้วไหว
@@ -30,7 +30,7 @@ export default async function LandingPage() {
   if (user) redirect('/dashboard')
 
   return (
-    <div suppressHydrationWarning className="min-h-screen bg-white text-zinc-900 font-sans selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden relative">
+    <div className="min-h-screen bg-white text-zinc-900 font-sans selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden relative">
       
       {/* --- Performance Optimized Fluid Background --- */}
       <AIFaceBackground />
@@ -80,9 +80,9 @@ export default async function LandingPage() {
           <div className="py-8 grid grid-cols-2 md:grid-cols-4 gap-6 justify-items-center max-w-4xl mx-auto">
             {[
               { icon: <Users size={20} />, title: "AI Face Sort", desc: "แยกหน้าคนอัตโนมัติ" },
-              { icon: <Star size={20} />, title: "AI Scoring", desc: "ให้คะแนนความสวยด้วย AI" }, // ✅ เปลี่ยน Beauty เป็น Scoring
-              { icon: <BarChart3 size={20} />, title: "Quality Check", desc: "วัดค่าความคมชัดของภาพ" }, // ✅ เปลี่ยน Screening เป็น Quality Check
-              { icon: <Settings size={20} />, title: "AI Manager", desc: "จัดระเบียบไฟล์ภาพอัตโนมัติ" },
+              { icon: <Star size={20} />, title: "AI Scoring", desc: "ให้คะแนนความสวยด้วย AI" }, 
+              { icon: <BarChart3 size={20} />, title: "Quality Check", desc: "วัดค่าความคมชัดของภาพ" }, 
+              { icon: <Sparkles size={20} />, title: "AI Beauty", desc: "แต่งหน้าใสอัตโนมัติ" },
             ].map((item, idx) => (
               <div key={idx} className="flex flex-col items-center gap-2 group cursor-default">
                 <div className="w-12 h-12 rounded-full bg-white border border-zinc-100 shadow-sm flex items-center justify-center text-blue-600 group-hover:scale-110 group-hover:border-blue-200 group-hover:shadow-blue-100 transition-all duration-300">
@@ -115,66 +115,7 @@ export default async function LandingPage() {
       {/* --- 2. How It Works (Step 1-2-3) --- */}
       <section className="relative z-10 py-24 px-6 bg-white overflow-hidden">
         
-      <style>{`
-          /* --- 1. Floating Icons (Camera -> AI -> QR) --- */
-          /* ไอคอนลอยจากซ้ายไปขวา (Step 1 -> 2) */
-          @keyframes float-step1 {
-            0% { left: 18%; opacity: 0; transform: scale(0.5) translateY(-50%); }
-            10% { opacity: 1; transform: scale(1) translateY(-50%); }
-            90% { opacity: 1; transform: scale(1) translateY(-50%); }
-            100% { left: 48%; opacity: 0; transform: scale(0.5) translateY(-50%); }
-          }
-          /* ไอคอนลอยจากซ้ายไปขวา (Step 2 -> 3) */
-          @keyframes float-step2 {
-            0% { left: 52%; opacity: 0; transform: scale(0.5) translateY(-50%); }
-            10% { opacity: 1; transform: scale(1) translateY(-50%); }
-            90% { opacity: 1; transform: scale(1) translateY(-50%); }
-            100% { left: 82%; opacity: 0; transform: scale(0.5) translateY(-50%); }
-          }
-          .animate-float-1 { animation: float-step1 2.5s infinite linear; }
-          .animate-float-2 { animation: float-step2 2.5s infinite linear 1.25s; }
-
-          /* --- 2. Camera Flash (Step 1) --- */
-          /* แสงแฟลชวาบเบาๆ ตรงกลางเลนส์ */
-          @keyframes pro-flash {
-            0%, 90%, 100% { opacity: 0; transform: scale(0.8); }
-            92% { opacity: 0.8; transform: scale(1.2); }
-            95% { opacity: 0; transform: scale(1.4); }
-          }
-          .animate-pro-flash { animation: pro-flash 3s infinite ease-out; }
-
-          /* --- 3. AI Screening (Step 2) --- */
-          /* ❌ รูปไม่ผ่าน: กลาง -> ล่าง (ใช้ Margin เลื่อนลง) */
-          @keyframes reject-down { 
-            0%, 40% { opacity: 0; transform: translate(-50%, -50%) scale(0); margin-top: 0; }
-            45% { opacity: 1; transform: translate(-50%, -50%) scale(1); margin-top: 0; }
-            55% { opacity: 1; transform: translate(-50%, -50%) scale(1); margin-top: 0; }
-            70% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); margin-top: 40px; } 
-            100% { opacity: 0; margin-top: 40px; }
-          }
-
-          /* ✅ รูปผ่าน: กลาง -> ขวา (ใช้ Margin เลื่อนขวา) */
-          @keyframes pass-right { 
-             0%, 60% { opacity: 0; transform: translate(-50%, -50%) scale(0); margin-left: 0; }
-             65% { opacity: 1; transform: translate(-50%, -50%) scale(1); margin-left: 0; }
-             75% { opacity: 1; transform: translate(-50%, -50%) scale(1); margin-left: 0; }
-             90% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); margin-left: 40px; } 
-             100% { opacity: 0; margin-left: 40px; }
-          }
-
-          .animate-reject { animation: reject-down 3s infinite ease-in-out; }
-          .animate-pass { animation: pass-right 3s infinite ease-in-out; }
-
-          /* --- 4. QR Scan (Step 3) --- */
-          /* เส้นสแกนวิ่งลง */
-          @keyframes scan-line {
-            0% { top: 10%; opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { top: 90%; opacity: 0; }
-          }
-          .animate-scan { animation: scan-line 2s linear infinite; }
-        `}</style>
+        {/* ❌ ลบ <style> block ออก (คุณต้องเอา CSS ไปใส่ใน globals.css แทน) */}
 
         <div className="max-w-5xl mx-auto space-y-16 relative">
           
@@ -245,7 +186,7 @@ export default async function LandingPage() {
             </div>
 
             {/* Step 2: AI Process */}
-            <div suppressHydrationWarning={true} className="relative z-10 flex flex-col items-center text-center space-y-6 group delay-100">
+            <div className="relative z-10 flex flex-col items-center text-center space-y-6 group delay-100">
               <div className="relative">
                 {/* Main Icon Container */}
                 <div className="w-24 h-24 rounded-3xl bg-white border border-zinc-100 shadow-xl flex items-center justify-center relative z-10 group-hover:-translate-y-2 transition-transform duration-500 overflow-hidden">
@@ -268,7 +209,7 @@ export default async function LandingPage() {
                    {/* ✅ Animation: รูปดี (กลาง -> ขวา) */}
                    <div className="absolute top-1/2 left-1/2 w-6 h-6 z-20 animate-pass">
                       <div className="w-full h-full bg-green-100 rounded-full flex items-center justify-center border border-green-200 shadow-sm">
-                         <CheckCircle2 size={14} className="text-green-600" />
+                         <div className="text-[10px] text-zinc-500">✓</div> {/* แก้เป็น text icon แทน lucide เพื่อลด error ถ้าหาไม่เจอ */}
                       </div>
                    </div>
 
