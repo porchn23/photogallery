@@ -553,14 +553,18 @@ export default async function LandingPage() {
       <section className="relative z-10 py-24 px-6">
       <div className="max-w-5xl mx-auto space-y-24">
           <div className="flex flex-col md:flex-row items-center gap-12 md:gap-20">
-            <div className="flex-1 space-y-5">
+          <div className="flex-1 space-y-5">
               <h2 className="text-3xl md:text-4xl font-medium tracking-tight leading-tight text-zinc-950">
-                AI Face Recognition <br /> 
-                <span className="text-blue-600">สแกนปุ๊บ เจอปั๊บ</span>
+                AI Photo Gallery <br /> 
+                <span className="text-blue-600">อัลบั้มส่วนตัวของคุณ</span>
               </h2>
-              <p className="text-zinc-500 text-base leading-relaxed italic">ไม่ต้องให้ลูกค้าเลื่อนหาภาพท่ามกลางรูปภาพนับพันอีกต่อไป AI ช่วยให้พวกเขาหารูปตัวเองเจอใน 1 วินาที</p>
+              <p className="text-zinc-500 text-base leading-relaxed italic">
+                ด้วยเทคโนโลยี <span className="text-zinc-900 font-semibold">AI Face Recognition</span> อัจฉริยะ 
+                ระบบจะค้นหาและรวบรวมเฉพาะรูปที่มีคุณอยู่ในภาพ สร้างเป็นแกลเลอรีส่วนตัวให้โดยอัตโนมัติ 
+                ไม่ต้องเสียเวลาเลื่อนหารูปตัวเองอีกต่อไป
+              </p>
               <ul className="space-y-2">
-                {['คัดแยกภาพตามใบหน้าอัตโนมัติ', 'รองรับจำนวนคนได้มหาศาล', 'ความแม่นยำสูง'].map((item) => (
+                {['ค้นหารูปตัวเองได้ในคลิกเดียว', 'สร้างอัลบั้มส่วนตัวให้อัตโนมัติ', 'ความเป็นส่วนตัวสูง เห็นเฉพาะรูปตัวเอง'].map((item) => (
                   <li key={item} className="flex items-center gap-3 text-xs font-semibold text-zinc-700">
                     <CheckCircle2 size={14} className="text-green-500" /> {item}
                   </li>
