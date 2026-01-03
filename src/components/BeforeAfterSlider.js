@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
+// import Image from 'next/image'; // ❌ ไม่ใช้ Next Image ชั่วคราว
 
 export default function BeforeAfterSlider() {
   const [sliderPosition, setSliderPosition] = useState(50);
@@ -9,41 +9,37 @@ export default function BeforeAfterSlider() {
   return (
     <div className="w-full max-w-4xl mx-auto aspect-[4/3] md:aspect-[16/9] relative rounded-3xl overflow-hidden shadow-2xl border border-white/10 group select-none">
       
-      {/* 1. รูป After (รูปแต่งแล้ว) */}
+      {/* 1. รูป After (Base Layer) */}
       <div className="absolute inset-0">
-         <Image 
+         {/* ✅ ใช้ img ธรรมดา แทน Image */}
+         <img 
            src="/Assets/before-after/after.jpg"
            alt="After AI"
-           fill
-           className="object-cover"
+           className="w-full h-full object-cover"
            draggable={false}
-           priority
-           unoptimized // ✅ เพิ่มตัวนี้: บังคับให้โหลดไฟล์ตรงๆ ไม่ผ่าน Image Optimization (เผื่อมีปัญหาเรื่อง Cache/Process)
+           crossOrigin="anonymous" // ✅ เพิ่มตัวนี้
          />
          <div className="absolute top-4 right-4 px-3 py-1 bg-blue-600/90 backdrop-blur text-white text-[10px] font-bold uppercase tracking-widest rounded-full z-10">
            AI Enhanced
          </div>
       </div>
 
-      {/* 2. รูป Before (รูปสด) */}
+      {/* 2. รูป Before (Overlay Layer) */}
       <div 
         className="absolute inset-0"
         style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
       >
-         <Image 
+         {/* ✅ ใช้ img ธรรมดา */}
+         <img 
            src="/Assets/before-after/before.jpg"
            alt="Before Original"
-           fill
-           className="object-cover"
+           className="w-full h-full object-cover"
            draggable={false}
-           priority
-           unoptimized // ✅ เพิ่มตัวนี้เหมือนกัน
+           crossOrigin="anonymous" // ✅ เพิ่มตัวนี้
          />
          <div className="absolute top-4 left-4 px-3 py-1 bg-black/60 backdrop-blur text-white text-[10px] font-bold uppercase tracking-widest rounded-full z-20">
            Original
          </div>
-         
-         {/* เส้นแบ่ง */}
          <div className="absolute inset-y-0 right-0 w-0.5 bg-white/50"></div>
       </div>
 
