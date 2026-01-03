@@ -126,7 +126,7 @@ export default async function LandingPage() {
                ทำงานง่ายใน <span className="text-blue-600">3 ขั้นตอน</span>
              </h2>
              <p className="text-zinc-500 text-sm max-w-lg mx-auto">
-               เปลี่ยนความวุ่นวายหลังบ้าน ให้เป็นระบบอัตโนมัติที่ลื่นไหล
+               เปลี่ยนความวุ่นวายหลังบ้าน ให้เป็นระบบอัตโนมัติที่ลื่นไหล ที่ใช้แค่กล้อง + อินเทอร์เน็ต
              </p>
           </div>
 
