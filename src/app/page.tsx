@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { 
   Zap, Camera, Users, ShieldCheck, 
   ArrowRight, CheckCircle2, Cloud, Sparkles, Lock,
-  Globe, CreditCard, Settings, Plus, QrCode
+  Globe, CreditCard, Settings, Plus, QrCode, FileImage
 } from 'lucide-react'
 
 // นำเข้า Background ที่ลื่นไหลและพริ้วไหว
@@ -28,7 +28,7 @@ export default async function LandingPage() {
   if (user) redirect('/dashboard')
 
   return (
-    <div className="min-h-screen bg-white text-zinc-900 font-sans selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden relative">
+    <div suppressHydrationWarning className="min-h-screen bg-white text-zinc-900 font-sans selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden relative">
       
       {/* --- Performance Optimized Fluid Background --- */}
       <AIFaceBackground />
@@ -64,7 +64,7 @@ export default async function LandingPage() {
           </div>
           
           <div className="space-y-3">
-            {/* Headline */}
+            {/* Headline (แบบเดิมที่คุณชอบ) */}
             <h1 className="text-3xl md:text-6xl font-black tracking-tight leading-tight px-4">
               เปลี่ยนงานอีเวนต์ให้ <span className="text-blue-600">ล้ำสมัย</span> <br />
               ด้วยระบบส่งภาพ <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 animate-text-gradient">AI Real-time</span>
@@ -114,6 +114,52 @@ export default async function LandingPage() {
 
       {/* --- 2. How It Works (Step 1-2-3) --- */}
       <section className="relative z-10 py-24 px-6 bg-white overflow-hidden">
+        
+      <style>{`
+          /* ... Animation เดิม ... */
+          @keyframes float-step1 {
+            0% { left: 18%; opacity: 0; transform: scale(0.5) translateY(-50%); }
+            10% { opacity: 1; transform: scale(1) translateY(-50%); }
+            90% { opacity: 1; transform: scale(1) translateY(-50%); }
+            100% { left: 48%; opacity: 0; transform: scale(0.5) translateY(-50%); }
+          }
+          @keyframes float-step2 {
+            0% { left: 52%; opacity: 0; transform: scale(0.5) translateY(-50%); }
+            10% { opacity: 1; transform: scale(1) translateY(-50%); }
+            90% { opacity: 1; transform: scale(1) translateY(-50%); }
+            100% { left: 82%; opacity: 0; transform: scale(0.5) translateY(-50%); }
+          }
+          .animate-float-1 { animation: float-step1 2.5s infinite linear; }
+          .animate-float-2 { animation: float-step2 2.5s infinite linear 1.25s; }
+
+          @keyframes pro-flash {
+            0%, 90%, 100% { opacity: 0; transform: scale(0.8); }
+            92% { opacity: 0.8; transform: scale(1.2); }
+            95% { opacity: 0; transform: scale(1.4); }
+          }
+          .animate-pro-flash { animation: pro-flash 3s infinite ease-out; }
+
+          @keyframes gear-spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          @keyframes working-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+          }
+          .animate-gear-spin { animation: gear-spin 3s linear infinite; }
+          .animate-working { animation: working-pulse 1s ease-in-out infinite; }
+
+          /* ✅ เพิ่ม: Animation เส้นสแกน (Scan Line) */
+          @keyframes scan-line {
+            0% { top: 10%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 90%; opacity: 0; }
+          }
+          .animate-scan { animation: scan-line 2s linear infinite; }
+        `}</style>
+
         <div className="max-w-5xl mx-auto space-y-16 relative">
           
           {/* Header */}
@@ -126,7 +172,7 @@ export default async function LandingPage() {
                ทำงานง่ายใน <span className="text-blue-600">3 ขั้นตอน</span>
              </h2>
              <p className="text-zinc-500 text-sm max-w-lg mx-auto">
-               เปลี่ยนความวุ่นวายหลังบ้าน ให้เป็นระบบอัตโนมัติที่ลื่นไหล ที่ใช้แค่กล้อง + อินเทอร์เน็ต
+               เปลี่ยนความวุ่นวายหลังบ้าน ให้เป็นระบบอัตโนมัติที่ลื่นไหล
              </p>
           </div>
 
@@ -134,14 +180,43 @@ export default async function LandingPage() {
           <div className="relative grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8">
             
             {/* Connecting Line (Desktop Only) */}
-            <div className="hidden md:block absolute top-12 left-[16%] right-[16%] h-0.5 bg-gradient-to-r from-zinc-200 via-blue-200 to-zinc-200 z-0"></div>
+            <div className="hidden md:block absolute top-12 left-[16%] right-[16%] h-0.5 bg-zinc-100 z-0">
+               {/* เส้นวิ่งวิบวับ */}
+               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-200 to-transparent w-1/2 animate-[shimmer_2s_infinite]"></div>
+            </div>
+
+            {/* ✅ Icon ลอย 1: Camera -> AI */}
+            <div className="hidden md:block absolute top-12 w-full h-0 z-0 pointer-events-none">
+                {/* เพิ่ม opacity-0 เพื่อซ่อนก่อนเริ่ม Animation */}
+                <div className="absolute top-0 opacity-0 animate-float-1 bg-white p-1.5 rounded-lg border border-blue-100 shadow-sm text-blue-500 z-20">
+                    <FileImage size={16} />
+                </div>
+            </div>
+
+            {/* ✅ Icon ลอย 2: AI -> QR */}
+            <div className="hidden md:block absolute top-12 w-full h-0 z-0 pointer-events-none">
+                {/* เพิ่ม opacity-0 เพื่อซ่อนก่อนเริ่ม Animation */}
+                <div className="absolute top-0 opacity-0 animate-float-2 bg-white p-1.5 rounded-lg border border-purple-100 shadow-sm text-purple-500 z-20">
+                    <FileImage size={16} />
+                </div>
+            </div>
 
             {/* Step 1: Shoot & Send */}
             <div className="relative z-10 flex flex-col items-center text-center space-y-6 group">
               <div className="relative">
                 <div className="w-24 h-24 rounded-3xl bg-white border border-zinc-100 shadow-xl flex items-center justify-center relative z-10 group-hover:-translate-y-2 transition-transform duration-500">
                   <div className="absolute inset-0 bg-blue-50/50 rounded-3xl transform rotate-6 scale-90 -z-10 transition-transform group-hover:rotate-12"></div>
-                  <Camera size={32} className="text-blue-600" />
+                  
+                  {/* กล้องนิ่ง สง่างาม */}
+                  <div className="relative">
+                    <Camera size={32} className="text-blue-600 relative z-10" />
+                    
+                    {/* ✅ แสงแฟลชสีขาวตรงกลางเลนส์ (วาบแล้วหายไป) */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="w-2 h-2 bg-white rounded-full blur-[2px] animate-pro-flash z-20 shadow-[0_0_15px_rgba(255,255,255,0.8)]"></div>
+                    </div>
+                  </div>
+
                   <div className="absolute -right-2 -top-2 w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center font-black text-sm border-4 border-white">1</div>
                 </div>
                 {/* Ping Animation */}
@@ -158,12 +233,29 @@ export default async function LandingPage() {
             {/* Step 2: AI Process */}
             <div className="relative z-10 flex flex-col items-center text-center space-y-6 group delay-100">
               <div className="relative">
-                <div className="w-24 h-24 rounded-3xl bg-white border border-zinc-100 shadow-xl flex items-center justify-center relative z-10 group-hover:-translate-y-2 transition-transform duration-500">
-                   <div className="absolute inset-0 bg-purple-50/50 rounded-3xl transform -rotate-3 scale-90 -z-10 transition-transform group-hover:-rotate-6"></div>
-                   <Sparkles size={32} className="text-purple-600 animate-pulse" />
-                   <div className="absolute -right-2 -top-2 w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center font-black text-sm border-4 border-white">2</div>
+                {/* Main Icon Container */}
+                <div className="w-24 h-24 rounded-3xl bg-white border border-zinc-100 shadow-xl flex items-center justify-center relative z-10 group-hover:-translate-y-2 transition-transform duration-500 overflow-hidden">
+                   
+                   {/* Background หมุน */}
+                   <div className="absolute inset-0 bg-purple-50/50 rounded-3xl animate-gear-spin opacity-50 z-0">
+                      <div className="absolute top-0 left-1/2 w-full h-full bg-gradient-to-b from-white/0 to-purple-100/50 -translate-x-1/2"></div>
+                   </div>
+
+                   {/* วงแหวนหมุน */}
+                   <div className="absolute inset-2 border-2 border-dashed border-purple-200 rounded-full animate-[spin_4s_linear_infinite_reverse] z-10"></div>
+
+                   {/* ไอคอนหลัก */}
+                   <div className="relative animate-working z-20">
+                      <Sparkles size={32} className="text-purple-600 drop-shadow-sm" />
+                   </div>
+                </div>
+
+                {/* ✅ ย้ายเลข 2 ออกมาอยู่นอก Container หลัก เพื่อไม่ให้โดนบังหรือโดน crop */}
+                <div className="absolute -right-2 -top-2 w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center font-black text-sm border-4 border-white z-50 shadow-sm transition-transform group-hover:-translate-y-2 duration-500">
+                  2
                 </div>
               </div>
+
               <div className="space-y-2">
                 <h3 className="text-lg font-bold">AI Process</h3>
                 <p className="text-xs text-zinc-500 leading-relaxed max-w-[200px] mx-auto">
@@ -175,12 +267,28 @@ export default async function LandingPage() {
             {/* Step 3: Scan & Get */}
             <div className="relative z-10 flex flex-col items-center text-center space-y-6 group delay-200">
               <div className="relative">
-                <div className="w-24 h-24 rounded-3xl bg-white border border-zinc-100 shadow-xl flex items-center justify-center relative z-10 group-hover:-translate-y-2 transition-transform duration-500">
+                {/* Main Icon Container */}
+                <div className="w-24 h-24 rounded-3xl bg-white border border-zinc-100 shadow-xl flex items-center justify-center relative z-10 group-hover:-translate-y-2 transition-transform duration-500 overflow-hidden">
+                   
+                   {/* Background อ่อนๆ */}
                    <div className="absolute inset-0 bg-green-50/50 rounded-3xl transform rotate-3 scale-90 -z-10 transition-transform group-hover:rotate-6"></div>
-                   <QrCode size={32} className="text-green-600" />
-                   <div className="absolute -right-2 -top-2 w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center font-black text-sm border-4 border-white">3</div>
+                   
+                   {/* ไอคอนหลัก */}
+                   <div className="relative">
+                     <QrCode size={32} className="text-green-600 relative z-10" />
+                     
+                     {/* ✅ เส้นสแกนสีเขียวเรืองแสง วิ่งลง */}
+                     <div className="absolute left-[-10px] right-[-10px] h-[2px] bg-green-400 shadow-[0_0_10px_rgba(74,222,128,0.8)] animate-scan z-20"></div>
+                   </div>
+
+                </div>
+
+                {/* ✅ ย้ายเลข 3 ออกมานอก Container */}
+                <div className="absolute -right-2 -top-2 w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center font-black text-sm border-4 border-white z-50 shadow-sm transition-transform group-hover:-translate-y-2 duration-500">
+                  3
                 </div>
               </div>
+              
               <div className="space-y-2">
                 <h3 className="text-lg font-bold">Scan & Get</h3>
                 <p className="text-xs text-zinc-500 leading-relaxed max-w-[200px] mx-auto">
@@ -215,37 +323,31 @@ export default async function LandingPage() {
               { 
                 name: 'Sony', 
                 logo: 'sony.png', 
-                // รวมรุ่นที่มี FTP Native (A9/A1) และรุ่นยอดนิยมที่อัปเกรด Firmware แล้วใช้ได้
                 models: 'A1, A9 III, A9 II, A7R V, A7 IV, A7S III, FX3, FX30' 
               },
               { 
                 name: 'Canon', 
                 logo: 'canon.png', 
-                // ตระกูล R และ 1DX ที่เก่งเรื่อง Network
                 models: 'EOS R1, R3, R5 II, R5, R6 Mark II, 1D X Mark III' 
               },
               { 
                 name: 'Nikon', 
                 logo: 'nikon.png', 
-                // ตระกูล Z และ D ตัวท็อป
                 models: 'Z9, Z8, Z6 III, Zf, D6, D5, D850 (WT)' 
               },
               { 
                 name: 'Fujifilm', 
                 logo: 'fujifilm.png', 
-                // รุ่นที่มี Transmitter Grip หรือ Built-in
                 models: 'GFX100 II, X-H2S, X-H2, X-T5, X-S20' 
               },
               { 
                 name: 'Panasonic', 
                 logo: 'panasonic.png', 
-                // รุ่นที่เน้น Streaming/Network
                 models: 'Lumix S5 IIX, GH7, GH6, BGH1, BS1H' 
               },
               { 
                 name: 'Olympus', 
                 logo: 'olympus.png', 
-                // OM System ตัวท็อป
                 models: 'OM-1 Mark II, OM-1, E-M1X, E-M1 Mark III' 
               },
             ].map((brand) => (
