@@ -105,7 +105,7 @@ export default async function LandingPage() {
             {/* Value Hook */}
             <p className="text-[10px] md:text-xs text-zinc-400 font-medium flex items-center gap-1.5 opacity-80 hover:opacity-100 transition-opacity cursor-default">
               <CheckCircle2 size={12} className="text-green-500" />
-              ลดเวลาคัดรูปหลังงานได้ 100% ให้คุณมีเวลาพักผ่อนมากขึ้น
+              อย่าปล่อยให้คู่แข่งแซงหน้า ในวันที่โลกหมุนด้วย AI
             </p>
           </div>
 
