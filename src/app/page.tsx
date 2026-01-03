@@ -6,11 +6,13 @@ import Image from 'next/image'
 import { 
   Zap, Camera, Users, ShieldCheck, 
   ArrowRight, CheckCircle2, Cloud, Sparkles, Lock,
-  Globe, CreditCard, Settings, Plus, QrCode, FileImage
+  Globe, CreditCard, Settings, Plus, QrCode, FileImage, 
+  Star, BarChart3 // ✅ เพิ่ม Icon ใหม่
 } from 'lucide-react'
 
 // นำเข้า Background ที่ลื่นไหลและพริ้วไหว
 import AIFaceBackground from '../components/AIFaceBackground' 
+import BeforeAfterSlider from '../components/BeforeAfterSlider'
 
 export default async function LandingPage() {
   const cookieStore = await cookies()
@@ -64,24 +66,22 @@ export default async function LandingPage() {
           </div>
           
           <div className="space-y-3">
-            {/* Headline (แบบเดิมที่คุณชอบ) */}
             <h1 className="text-3xl md:text-6xl font-black tracking-tight leading-tight px-4">
               เปลี่ยนงานอีเวนต์ให้ <span className="text-blue-600">ล้ำสมัย</span> <br />
               ด้วยระบบส่งภาพ <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 animate-text-gradient">AI Real-time</span>
             </h1>
             
-            {/* Description */}
             <p className="max-w-xl mx-auto text-sm md:text-base text-zinc-500 font-medium leading-relaxed italic opacity-80 px-6">
               "แค่สแกน QR Code ลูกค้าก็ได้รูปตัวเองทันที ไม่ต้องรอนาน <br className="hidden md:block" /> ยกระดับประสบการณ์งานวิ่ง งานแต่ง และปาร์ตี้บริษัท ด้วยต้นทุนหลักร้อย"
             </p>
           </div>
 
-          {/* Grid Icons */}
+          {/* Grid Icons (✅ ปรับปรุงตรงนี้) */}
           <div className="py-8 grid grid-cols-2 md:grid-cols-4 gap-6 justify-items-center max-w-4xl mx-auto">
             {[
               { icon: <Users size={20} />, title: "AI Face Sort", desc: "แยกหน้าคนอัตโนมัติ" },
-              { icon: <Sparkles size={20} />, title: "AI Beauty", desc: "ผิวเนียนใสเป็นธรรมชาติ" },
-              { icon: <CheckCircle2 size={20} />, title: "AI Screening", desc: "คัดกรองรูปเสียออกให้" },
+              { icon: <Star size={20} />, title: "AI Scoring", desc: "ให้คะแนนความสวยด้วย AI" }, // ✅ เปลี่ยน Beauty เป็น Scoring
+              { icon: <BarChart3 size={20} />, title: "Quality Check", desc: "วัดค่าความคมชัดของภาพ" }, // ✅ เปลี่ยน Screening เป็น Quality Check
               { icon: <Settings size={20} />, title: "AI Manager", desc: "จัดระเบียบไฟล์ภาพอัตโนมัติ" },
             ].map((item, idx) => (
               <div key={idx} className="flex flex-col items-center gap-2 group cursor-default">
@@ -203,7 +203,6 @@ export default async function LandingPage() {
 
             {/* ✅ Icon ลอย 1: Camera -> AI */}
             <div className="hidden md:block absolute top-12 w-full h-0 z-0 pointer-events-none">
-                {/* เพิ่ม opacity-0 เพื่อซ่อนก่อนเริ่ม Animation */}
                 <div className="absolute top-0 opacity-0 animate-float-1 bg-white p-1.5 rounded-lg border border-blue-100 shadow-sm text-blue-500 z-20">
                     <FileImage size={16} />
                 </div>
@@ -211,7 +210,6 @@ export default async function LandingPage() {
 
             {/* ✅ Icon ลอย 2: AI -> QR */}
             <div className="hidden md:block absolute top-12 w-full h-0 z-0 pointer-events-none">
-                {/* เพิ่ม opacity-0 เพื่อซ่อนก่อนเริ่ม Animation */}
                 <div className="absolute top-0 opacity-0 animate-float-2 bg-white p-1.5 rounded-lg border border-purple-100 shadow-sm text-purple-500 z-20">
                     <FileImage size={16} />
                 </div>
@@ -283,9 +281,9 @@ export default async function LandingPage() {
               </div>
 
               <div className="space-y-2">
-                <h3 className="text-lg font-bold">AI Screening</h3>
+                <h3 className="text-lg font-bold">AI Screening & Scoring</h3>
                 <p className="text-xs text-zinc-500 leading-relaxed max-w-[200px] mx-auto">
-                  ระบบ <span className="font-bold text-zinc-700">AI Neural Engine</span> คัดแยกใบหน้า คัดรูปเสียทิ้ง และส่งผ่านเฉพาะรูปคุณภาพสูง
+                  AI คัดแยกรูปเสียให้คะแนนความสวยด้วย <span className="font-bold text-zinc-700">Golden Ratio</span> และส่งผ่านเฉพาะรูปคุณภาพสูง
                 </p>
               </div>
             </div>
@@ -324,6 +322,54 @@ export default async function LandingPage() {
             </div>
 
           </div>
+        </div>
+      </section>
+
+      {/* --- New Section: AI Beauty Before/After Comparison --- */}
+      <section className="relative z-10 py-24 px-6 bg-zinc-900 text-white overflow-hidden">
+        
+        {/* Background Effect */}
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none"></div>
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-full bg-blue-500/5 blur-[120px] pointer-events-none"></div>
+
+        <div className="max-w-6xl mx-auto space-y-12 relative z-10">
+          
+          {/* Header Text: เน้นแก้ Pain Point ช่างภาพ */}
+          <div className="text-center space-y-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 text-white rounded-full backdrop-blur-md border border-white/10">
+              <Sparkles size={12} className="text-yellow-400" />
+              <span className="text-[10px] font-black uppercase tracking-widest">AI Retouching Assistant</span>
+            </div>
+            
+            <h2 className="text-3xl md:text-5xl font-black tracking-tight leading-tight">
+              ส่งงานไว... <br className="md:hidden" />แต่ได้ไฟล์ <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">คุณภาพระดับแมกกาซีน</span>
+            </h2>
+            
+            <p className="text-zinc-400 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
+              ลืมการนั่งแต่งรูปทีละใบหลังจบงานไปได้เลย AI ของ Rooplife เรียนรู้จากกระบวนการ Retouch <br className="hidden md:block" /> ของมืออาชีพ
+              ช่วยปรับผิวเนียน (Skin Smoothing) ให้อัตโนมัติในวินาทีที่รูปถูกอัปโหลด
+            </p>
+          </div>
+
+          {/* Slider Component */}
+          <BeforeAfterSlider />
+
+          {/* Features List: เน้น Benefit ที่จับต้องได้ */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-8 border-t border-white/10">
+            {[
+              { label: "Skin Texture", val: "Natural", desc: "เก็บรายละเอียดผิวเนียน ไม่เบลอจนหลอกตา" },
+              { label: "Lighting", val: "Auto-Fill", desc: "เติมแสงให้ใบหน้าสว่างใส อย่างเป็นธรรมชาติ" },
+              { label: "Processing Time", val: "< 3s", desc: "แต่งเสร็จในพริบตาพร้อมส่ง ถึงมือเจ้าภาพ" },
+              { label: "Batch Edit", val: "Unlimited", desc: "รองรับรูปถ่าย ไม่จำกัดจำนวน" }
+            ].map((stat, i) => (
+              <div key={i} className="text-center space-y-2 group cursor-default">
+                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest group-hover:text-blue-400 transition-colors">{stat.label}</p>
+                <p className="text-xl font-black text-white">{stat.val}</p>
+                <p className="text-[10px] text-zinc-400 max-w-[150px] mx-auto opacity-60 group-hover:opacity-100 transition-opacity">{stat.desc}</p>
+              </div>
+            ))}
+          </div>
+
         </div>
       </section>
 
@@ -506,19 +552,19 @@ export default async function LandingPage() {
               </ul>
             </div>
 
-            {/* Column 2: Smart Quality Control */}
+            {/* Column 2: Smart Quality Control (✅ Updated for Scoring) */}
             <div className="bg-zinc-50 rounded-3xl p-8 border border-zinc-100 hover:border-blue-200 transition-colors group">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
                   <Sparkles size={20} />
                 </div>
-                <h3 className="text-lg font-bold tracking-tight">Smart QC Assistant</h3>
+                <h3 className="text-lg font-bold tracking-tight">AI Beauty & QC</h3>
               </div>
               <ul className="space-y-4">
                 {[
-                  { title: "Blur Remover", desc: "AI ช่วยสแกนและคัดรูปที่เบลอหรือหลุดโฟกัสออกให้คุณ" },
+                  { title: "Golden Ratio Score", desc: "ให้คะแนนความสวย/สมมาตรของใบหน้า (Beauty Score) ด้วยหลักการ Golden Ratio" },
+                  { title: "Quality Score", desc: "วัดค่าความคมชัดของภาพ (Blur Score) เพื่อคัดรูปที่ชัดที่สุดให้ลูกค้า" },
                   { title: "Best Shot Selection", desc: "เลือกรูปที่ 'ตาเปิด' และ 'ยิ้มสวยที่สุด' ขึ้นมาเป็นรูปปกให้อัตโนมัติ" },
-                  { title: "Duplicate Cleaner", desc: "จัดการรูปถ่ายซ้ำๆ (Burst Mode) ให้เหลือเฉพาะช็อตที่ดีที่สุด" },
                   { title: "Auto-Lighting Check", desc: "วิเคราะห์แสงและสีของภาพ เพื่อเตรียมพร้อมสำหรับการแต่งภาพขั้นต่อไป" }
                 ].map((item, i) => (
                   <li key={i} className="flex flex-col gap-1">
@@ -631,7 +677,7 @@ export default async function LandingPage() {
             <p className="text-zinc-500 text-[11px] leading-relaxed max-w-[200px] mx-auto">สแกน QR Code เพื่อเข้าชมและดาวน์โหลดภาพถ่ายส่วนตัวได้ทันที</p>
           </div>
         </div>
-      </section>
+      </section>      
 
       {/* --- Footer --- */}
       <footer className="relative z-10 py-12 bg-white/80 backdrop-blur-md border-t border-zinc-100">        <div className="max-w-4xl mx-auto px-6 text-center space-y-12">

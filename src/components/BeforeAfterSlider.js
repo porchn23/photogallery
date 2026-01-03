@@ -1,0 +1,72 @@
+'use client';
+
+import { useState } from 'react';
+import Image from 'next/image';
+
+export default function BeforeAfterSlider() {
+  const [sliderPosition, setSliderPosition] = useState(50);
+
+  return (
+    <div className="w-full max-w-4xl mx-auto aspect-[4/3] md:aspect-[16/9] relative rounded-3xl overflow-hidden shadow-2xl border border-white/10 group select-none">
+      
+      {/* 1. รูป After (รูปแต่งแล้ว - Base Layer) */}
+      <div className="absolute inset-0">
+         <Image 
+           src="/Assets/before-after/after.jpg"
+           alt="After AI"
+           fill
+           className="object-cover"
+           draggable={false}
+           priority
+         />
+         <div className="absolute top-4 right-4 px-3 py-1 bg-blue-600/90 backdrop-blur text-white text-[10px] font-bold uppercase tracking-widest rounded-full z-10">
+           AI Enhanced
+         </div>
+      </div>
+
+      {/* 2. รูป Before (รูปสด - Overlay Layer) */}
+      <div 
+        className="absolute inset-0"
+        style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }} // ✅ ใช้ clip-path แทน width
+      >
+         <Image 
+           src="/Assets/before-after/before.jpg"
+           alt="Before Original"
+           fill
+           className="object-cover" // ใช้ object-cover เหมือนกันเป๊ะๆ
+           draggable={false}
+           priority
+         />
+         <div className="absolute top-4 left-4 px-3 py-1 bg-black/60 backdrop-blur text-white text-[10px] font-bold uppercase tracking-widest rounded-full z-20">
+           Original
+         </div>
+         
+         {/* เส้นแบ่ง (Border) */}
+         <div className="absolute inset-y-0 right-0 w-0.5 bg-white/50"></div>
+      </div>
+
+      {/* 3. Slider Handle */}
+      <div 
+         className="absolute top-0 bottom-0 w-1 bg-transparent cursor-ew-resize flex items-center justify-center z-20"
+         style={{ left: `${sliderPosition}%` }}
+      >
+                <div className="absolute inset-y-0 w-0.5 bg-white/80 shadow-[0_0_10px_rgba(0,0,0,0.2)]"></div>
+
+        <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-zinc-900 shadow-lg scale-100 group-hover:scale-110 transition-transform -ml-0.5"> {/* -ml-0.5 เพื่อ center handle */}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18-6-6 6-6"/><path d="m15 6 6 6-6 6"/></svg>
+        </div>
+      </div>
+
+      {/* 4. Input Control */}
+      <input 
+        type="range" 
+        min="0" 
+        max="100" 
+        value={sliderPosition}
+        onChange={(e) => setSliderPosition(e.target.value)}
+        className="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-30"
+      />
+
+    </div>
+  );
+}
