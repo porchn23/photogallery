@@ -15,6 +15,8 @@ import * as LucideIcons from 'lucide-react';
 import { formatThaiDate, toLocalISOString } from '@/src/lib/utils';
 import { logEvent } from '@/src/lib/axiom';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import AddToCalendarBtn from '@/src/components/AddToCalendarBtn';
+
 
 // S3 Client Config
 const s3Client = new S3Client({
@@ -358,7 +360,16 @@ export default function EventManagement() {
                   <button onClick={() => { navigator.clipboard.writeText(event?.join_code); alert('คัดลอกรหัสแล้ว'); }} className="p-1.5 hover:text-blue-500 transition-colors"><Copy size={14} /></button>
                 </div>
                 <div className="h-4 w-[1px] bg-zinc-200 dark:bg-zinc-800" />
-                <div className="flex items-center gap-2 text-sm"><Calendar size={16} className="text-zinc-400" /><span>{formatThaiDate(event?.start_time)}</span></div>
+                <div className="flex items-center gap-2 text-sm"><Calendar size={16} className="text-zinc-400" /><span>{formatThaiDate(event?.start_time)}</span>
+                <AddToCalendarBtn 
+    event={{
+      title: event?.title,
+      start: event?.start_time ? new Date(event.start_time) : null,
+      location: '' // ถ้ามี location ใน db ก็ใส่เพิ่ม
+    }}
+    className="ml-2"
+  />
+                </div>
               </div>
             </div>
             <button onClick={() => window.open(`/event/${event?.id}`, '_blank')} className="px-10 py-4 bg-zinc-950 dark:bg-zinc-100 text-white dark:text-black font-medium rounded-2xl shadow-xl flex items-center justify-center gap-3"><Zap size={18} fill="currentColor" /> <span className="uppercase tracking-[0.2em] text-[11px]">Public Gallery</span></button>

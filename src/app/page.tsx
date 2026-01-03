@@ -188,7 +188,7 @@ export default async function LandingPage() {
                ทำงานง่ายใน <span className="text-blue-600">3 ขั้นตอน</span>
              </h2>
              <p className="text-zinc-500 text-sm max-w-lg mx-auto">
-               เปลี่ยนความวุ่นวายหลังบ้าน ให้เป็นระบบอัตโนมัติที่ลื่นไหล
+               เปลี่ยนความวุ่นวายในการเตรียมระบบ ให้เป็นเรื่องง่าย ที่ใช้เพียงกล้อง + อินเตอร์เน็ต ก็มีระบบ QR CODE Real-time photo เท่ๆไว้ใช้
              </p>
           </div>
 
@@ -346,7 +346,7 @@ export default async function LandingPage() {
             </h2>
             
             <p className="text-zinc-400 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
-              ลืมการนั่งแต่งรูปทีละใบหลังจบงานไปได้เลย AI ของ Rooplife เรียนรู้จากกระบวนการ Retouch <br className="hidden md:block" /> ของมืออาชีพ
+              ลืมการนั่งแต่งรูปทีละใบหลังจบงานไปได้เลย AI ของ Rooplife เรียนรู้จากกระบวนการ Retouch <br className="hidden md:block" />ของมืออาชีพ
               ช่วยปรับผิวเนียน (Skin Smoothing) ให้อัตโนมัติในวินาทีที่รูปถูกอัปโหลด
             </p>
           </div>
@@ -693,7 +693,7 @@ export default async function LandingPage() {
             </div>
             <div className="space-y-1">
               <p className="text-[9px] font-black tracking-[0.3em] text-zinc-300 uppercase leading-none">ROOPLIFE TECHNOLOGY</p>
-              <p className="text-[8px] text-zinc-200 uppercase tracking-[0.1em]">© 2025 Professional Imaging Infrastructure.</p>
+              <p className="text-[8px] text-zinc-200 uppercase tracking-[0.1em]">© 2025 หจก.แปดแสนโปรดักชั่น 80/7 ต.ในเมือง อ.เมือง จ.ร้อยเอ็ด </p>
             </div>
           </div>
 
