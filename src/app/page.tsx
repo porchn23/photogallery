@@ -116,13 +116,15 @@ export default async function LandingPage() {
       <section className="relative z-10 py-24 px-6 bg-white overflow-hidden">
         
       <style>{`
-          /* ... Animation เดิม ... */
+          /* --- 1. Floating Icons (Camera -> AI -> QR) --- */
+          /* ไอคอนลอยจากซ้ายไปขวา (Step 1 -> 2) */
           @keyframes float-step1 {
             0% { left: 18%; opacity: 0; transform: scale(0.5) translateY(-50%); }
             10% { opacity: 1; transform: scale(1) translateY(-50%); }
             90% { opacity: 1; transform: scale(1) translateY(-50%); }
             100% { left: 48%; opacity: 0; transform: scale(0.5) translateY(-50%); }
           }
+          /* ไอคอนลอยจากซ้ายไปขวา (Step 2 -> 3) */
           @keyframes float-step2 {
             0% { left: 52%; opacity: 0; transform: scale(0.5) translateY(-50%); }
             10% { opacity: 1; transform: scale(1) translateY(-50%); }
@@ -132,6 +134,8 @@ export default async function LandingPage() {
           .animate-float-1 { animation: float-step1 2.5s infinite linear; }
           .animate-float-2 { animation: float-step2 2.5s infinite linear 1.25s; }
 
+          /* --- 2. Camera Flash (Step 1) --- */
+          /* แสงแฟลชวาบเบาๆ ตรงกลางเลนส์ */
           @keyframes pro-flash {
             0%, 90%, 100% { opacity: 0; transform: scale(0.8); }
             92% { opacity: 0.8; transform: scale(1.2); }
@@ -139,18 +143,30 @@ export default async function LandingPage() {
           }
           .animate-pro-flash { animation: pro-flash 3s infinite ease-out; }
 
-          @keyframes gear-spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+          /* --- 3. AI Screening (Step 2) --- */
+          /* ❌ รูปไม่ผ่าน: กลาง -> ล่าง (ใช้ Margin เลื่อนลง) */
+          @keyframes reject-down { 
+            0%, 40% { opacity: 0; transform: translate(-50%, -50%) scale(0); margin-top: 0; }
+            45% { opacity: 1; transform: translate(-50%, -50%) scale(1); margin-top: 0; }
+            55% { opacity: 1; transform: translate(-50%, -50%) scale(1); margin-top: 0; }
+            70% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); margin-top: 40px; } 
+            100% { opacity: 0; margin-top: 40px; }
           }
-          @keyframes working-pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-          }
-          .animate-gear-spin { animation: gear-spin 3s linear infinite; }
-          .animate-working { animation: working-pulse 1s ease-in-out infinite; }
 
-          /* ✅ เพิ่ม: Animation เส้นสแกน (Scan Line) */
+          /* ✅ รูปผ่าน: กลาง -> ขวา (ใช้ Margin เลื่อนขวา) */
+          @keyframes pass-right { 
+             0%, 60% { opacity: 0; transform: translate(-50%, -50%) scale(0); margin-left: 0; }
+             65% { opacity: 1; transform: translate(-50%, -50%) scale(1); margin-left: 0; }
+             75% { opacity: 1; transform: translate(-50%, -50%) scale(1); margin-left: 0; }
+             90% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); margin-left: 40px; } 
+             100% { opacity: 0; margin-left: 40px; }
+          }
+
+          .animate-reject { animation: reject-down 3s infinite ease-in-out; }
+          .animate-pass { animation: pass-right 3s infinite ease-in-out; }
+
+          /* --- 4. QR Scan (Step 3) --- */
+          /* เส้นสแกนวิ่งลง */
           @keyframes scan-line {
             0% { top: 10%; opacity: 0; }
             10% { opacity: 1; }
@@ -231,35 +247,45 @@ export default async function LandingPage() {
             </div>
 
             {/* Step 2: AI Process */}
-            <div className="relative z-10 flex flex-col items-center text-center space-y-6 group delay-100">
+            <div suppressHydrationWarning={true} className="relative z-10 flex flex-col items-center text-center space-y-6 group delay-100">
               <div className="relative">
                 {/* Main Icon Container */}
                 <div className="w-24 h-24 rounded-3xl bg-white border border-zinc-100 shadow-xl flex items-center justify-center relative z-10 group-hover:-translate-y-2 transition-transform duration-500 overflow-hidden">
                    
-                   {/* Background หมุน */}
-                   <div className="absolute inset-0 bg-purple-50/50 rounded-3xl animate-gear-spin opacity-50 z-0">
-                      <div className="absolute top-0 left-1/2 w-full h-full bg-gradient-to-b from-white/0 to-purple-100/50 -translate-x-1/2"></div>
+                   {/* Background */}
+                   <div className="absolute inset-0 bg-purple-50/50 rounded-3xl z-0"></div>
+
+                   {/* AI Brain / Core Icon (ตรงกลาง) */}
+                   <div className="relative z-10">
+                      <Sparkles size={28} className="text-purple-600 drop-shadow-sm" />
                    </div>
 
-                   {/* วงแหวนหมุน */}
-                   <div className="absolute inset-2 border-2 border-dashed border-purple-200 rounded-full animate-[spin_4s_linear_infinite_reverse] z-10"></div>
-
-                   {/* ไอคอนหลัก */}
-                   <div className="relative animate-working z-20">
-                      <Sparkles size={32} className="text-purple-600 drop-shadow-sm" />
+                   {/* ❌ Animation: รูปเสีย (กลาง -> ล่าง) */}
+                   <div className="absolute top-1/2 left-1/2 w-6 h-6 z-20 animate-reject">
+                      <div className="w-full h-full bg-red-100 rounded-md flex items-center justify-center border border-red-200 shadow-sm">
+                         <div className="text-[10px] font-bold text-red-500">✕</div>
+                      </div>
                    </div>
+
+                   {/* ✅ Animation: รูปดี (กลาง -> ขวา) */}
+                   <div className="absolute top-1/2 left-1/2 w-6 h-6 z-20 animate-pass">
+                      <div className="w-full h-full bg-green-100 rounded-full flex items-center justify-center border border-green-200 shadow-sm">
+                         <CheckCircle2 size={14} className="text-green-600" />
+                      </div>
+                   </div>
+
                 </div>
 
-                {/* ✅ ย้ายเลข 2 ออกมาอยู่นอก Container หลัก เพื่อไม่ให้โดนบังหรือโดน crop */}
+                {/* Badge เลข 2 */}
                 <div className="absolute -right-2 -top-2 w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center font-black text-sm border-4 border-white z-50 shadow-sm transition-transform group-hover:-translate-y-2 duration-500">
                   2
                 </div>
               </div>
 
               <div className="space-y-2">
-                <h3 className="text-lg font-bold">AI Process</h3>
+                <h3 className="text-lg font-bold">AI Screening</h3>
                 <p className="text-xs text-zinc-500 leading-relaxed max-w-[200px] mx-auto">
-                  ระบบ <span className="font-bold text-zinc-700">AI Neural Engine</span> คัดแยกใบหน้า คัดรูปเสีย และปรับแสงให้อัตโนมัติ
+                  ระบบ <span className="font-bold text-zinc-700">AI Neural Engine</span> คัดแยกใบหน้า คัดรูปเสียทิ้ง และส่งผ่านเฉพาะรูปคุณภาพสูง
                 </p>
               </div>
             </div>
