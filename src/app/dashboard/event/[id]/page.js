@@ -17,7 +17,7 @@ import { logEvent } from '@/src/lib/axiom';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import AddToCalendarBtn from '@/src/components/AddToCalendarBtn';
 
-
+// ... (S3 Client Config & getModelIcon function คงเดิม) ...
 // S3 Client Config
 const s3Client = new S3Client({
   endpoint: process.env.NEXT_PUBLIC_DO_SPACES_ENDPOINT,
@@ -31,7 +31,6 @@ const s3Client = new S3Client({
 });
 
 const getModelIcon = (iconName) => {
-  // ดึงจาก LucideIcons โดยใช้ชื่อ string
   return LucideIcons[iconName] || LucideIcons.Wand2;
 };
 
@@ -61,22 +60,24 @@ export default function EventManagement() {
   const [watermarkPosition, setWatermarkPosition] = useState('southeast');
   const [isUploading, setIsUploading] = useState(false);
   const [watermarkUrl, setWatermarkUrl] = useState(null);
-  const [fees, setFees] = useState({}); // ✅ เพิ่ม state เก็บราคา
-  
-  // ✅ AI Models State
+  const [fees, setFees] = useState({});
   const [aiModels, setAiModels] = useState([]);
+  const [isSavingWatermark, setIsSavingWatermark] = useState(false); // ✅ เพิ่ม State บอกสถานะกำลังเซฟ
 
+
+  // ✅ ปรับ Realtime Subscription: ไม่เรียก fetchData แบบ Loading เต็มหน้า
   useEffect(() => {
-    if (eventId) fetchData();
+    if (eventId) fetchData(true); // โหลดครั้งแรก show loading
     const channel = supabase.channel(`event-mgmt-${eventId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_cameras' }, () => fetchData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_members' }, () => fetchData())
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'photos' }, () => fetchData())
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'events', filter: `id=eq.${eventId}` }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_cameras' }, () => fetchData(false))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_members' }, () => fetchData(false))
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'photos' }, () => fetchData(false))
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'events', filter: `id=eq.${eventId}` }, () => fetchData(false))
       .subscribe();
     return () => supabase.removeChannel(channel);
   }, [eventId]);
 
+  // ... (useEffect watermark คงเดิม) ...
   useEffect(() => {
     if (event) {
       setWatermarkEnabled(event.watermark_enabled || false);
@@ -96,13 +97,59 @@ export default function EventManagement() {
     }
   }, [event]);
 
-  async function fetchData() {
+  // ✅ เพิ่ม: Auto-save Watermark Settings (Debounce 1s)
+  useEffect(() => {
+    if (!event) return;
+
+    // เช็คว่าค่าเปลี่ยนไปจากค่าตั้งต้นจริงๆ ไหม (เพื่อกันการ save ตอนโหลดครั้งแรก)
+    const hasChanged = 
+        watermarkEnabled !== event.watermark_enabled ||
+        watermarkOpacity !== (event.watermark_opacity ?? 0.5) ||
+        watermarkSize !== (event.watermark_size ?? 300) ||
+        watermarkPosition !== (event.watermark_position || 'southeast');
+
+    if (!hasChanged) return;
+
+    const timeoutId = setTimeout(async () => {
+        setIsSavingWatermark(true);
+        try {
+            await supabase.from('events').update({ 
+                watermark_enabled: watermarkEnabled, 
+                watermark_opacity: watermarkOpacity,
+                watermark_size: watermarkSize,
+                watermark_position: watermarkPosition,
+                watermark_version: Math.floor(Date.now() / 1000)
+            }).eq('id', event.id);
+            
+            // อัปเดต event state หลักด้วย เพื่อให้ hasChanged ทำงานถูกในรอบถัดไป
+            setEvent(prev => ({
+                ...prev,
+                watermark_enabled: watermarkEnabled,
+                watermark_opacity: watermarkOpacity,
+                watermark_size: watermarkSize,
+                watermark_position: watermarkPosition
+            }));
+        } catch (err) {
+            console.error("Auto-save failed:", err);
+        } finally {
+            setIsSavingWatermark(false);
+        }
+    }, 1000); // รอ 1 วินาทีหลังจากหยุดขยับ
+
+    return () => clearTimeout(timeoutId);
+  }, [watermarkEnabled, watermarkOpacity, watermarkSize, watermarkPosition, event]); // dependencies
+
+
+
+  // ✅ ปรับ fetchData ให้รับ parameter showLoading
+  async function fetchData(showLoading = true) {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true); // เฉพาะโหลดครั้งแรก
+      
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (!authUser) { router.push('/login'); return; }
       
-      // ✅ เพิ่ม: ดึงราคา Service Fees
+      // ... (Code การดึง fees และ eventId คงเดิม) ...
       const { data: feesData } = await supabase.from('service_fees').select('service_key, price');
       const feesMap = {};
       feesData?.forEach(f => feesMap[f.service_key] = f.price);
@@ -115,7 +162,7 @@ export default function EventManagement() {
         else { alert('ไม่พบรหัสงานนี้'); router.push('/dashboard'); return; }
       }
 
-      // ✅ Fetch AI Models เพิ่มเติม
+      // ... (Promise.all คงเดิม) ...
       const [eventRes, membersRes, userRes, photoRes, aiModelsRes] = await Promise.all([
         supabase.from('events').select('*, users!events_owner_id_fkey(*)').eq('id', realId).single(),
         supabase.from('event_members').select('*, users(*)').eq('event_id', realId),
@@ -147,12 +194,20 @@ export default function EventManagement() {
       setMyGarage(garageRes.data || []);
       setActiveCameras(activeCamsRes.data || []);
       setCameraHistory(historyCamsRes.data || []);
-      setEditTitle(eventData.title);
-      setEditStartTime(toLocalISOString(eventData.start_time));
-    } catch (err) { router.push('/dashboard'); } finally { setLoading(false); }
+      
+      // อัปเดต state edit เฉพาะตอนโหลดครั้งแรก หรือเมื่อไม่ได้ edit อยู่
+      if (!isEditing) {
+        setEditTitle(eventData.title);
+        setEditStartTime(toLocalISOString(eventData.start_time));
+      }
+
+    } catch (err) { router.push('/dashboard'); } finally { 
+      if (showLoading) setLoading(false); 
+    }
   }
 
-  // --- Handlers ---
+  // --- Handlers (ปรับปรุงให้ไม่รีเฟรชหน้า) ---
+
   const handleWatermarkUpload = async (e) => {
     const file = e.target.files[0];
     if (!file || file.type !== 'image/png') return alert('กรุณาอัปโหลดไฟล์ .png เท่านั้น');
@@ -166,6 +221,7 @@ export default function EventManagement() {
         ACL: 'public-read'
       });
       await s3Client.send(command);
+      
       const newVersion = Math.floor(Date.now() / 1000);
       const { error: dbError } = await supabase.from('events').update({ 
         watermark_enabled: true,
@@ -175,8 +231,15 @@ export default function EventManagement() {
         watermark_position: watermarkPosition
       }).eq('id', event.id);
       if (dbError) throw dbError;
-      alert('อัปโหลดลายน้ำสำเร็จ และเปิดใช้งานเรียบร้อย');
-      fetchData();
+      
+      // ✅ Update State ทันที
+      setEvent(prev => ({ 
+        ...prev, 
+        watermark_enabled: true, 
+        watermark_version: newVersion 
+      }));
+      alert('อัปโหลดลายน้ำสำเร็จ');
+      // fetchData(false); // เรียก background update ก็ได้ถ้าต้องการความชัวร์
     } catch (err) { console.error(err); alert('Upload Error: ' + err.message); } finally { setIsUploading(false); }
   };
 
@@ -190,110 +253,145 @@ export default function EventManagement() {
         watermark_version: Math.floor(Date.now() / 1000)
       }).eq('id', event.id);
       if (error) throw error;
+      
+      // ✅ Update State ทันที
+      setEvent(prev => ({
+        ...prev,
+        watermark_enabled: watermarkEnabled,
+        watermark_opacity: watermarkOpacity,
+        watermark_size: watermarkSize,
+        watermark_position: watermarkPosition
+      }));
       alert('บันทึกการตั้งค่าลายน้ำเรียบร้อยแล้ว');
-      fetchData();
     } catch (err) { alert('Error: ' + err.message); }
   };
 
   const handleToggleAIBeauty = async (acId, currentStatus) => {
     if (!isOwner || isExpired) return;
     const newStatus = !currentStatus;
+    // ✅ Update UI ทันที (Optimistic)
     setActiveCameras(prev => prev.map(ac => ac.id === acId ? { ...ac, ai_beauty_enabled: newStatus } : ac));
+    
     try {
       const { error } = await supabase.from('event_cameras').update({ ai_beauty_enabled: newStatus }).eq('id', acId);
       if (error) throw error;
       logEvent('ai_beauty_toggle', {
         user_id: user.id, user_name: user.full_name, event_id: event.id, camera_id: acId,
-        camera_name: activeCameras.find(ac => ac.id === acId)?.cameras?.nickname,
-        status: newStatus ? 'enabled' : 'disabled', billing_rate: '1.2 THB/Photo'
+        status: newStatus ? 'enabled' : 'disabled'
       });
     } catch (err) { 
+      // Revert UI if error
       setActiveCameras(prev => prev.map(ac => ac.id === acId ? { ...ac, ai_beauty_enabled: currentStatus } : ac));
       alert('AI Beauty Error: ' + err.message); 
     }
   };
 
-  // ✅ ฟังก์ชันเลือก AI Model
   const handleSelectAIModel = async (eventCameraId, modelId) => {
     if (!isOwner || isExpired) return;
+    // ✅ Update UI ทันที
     setActiveCameras(prev => prev.map(ac => ac.id === eventCameraId ? { ...ac, ai_model_id: modelId } : ac));
+    
     try {
       const { error } = await supabase.from('event_cameras').update({ ai_model_id: modelId }).eq('id', eventCameraId);
       if (error) throw error;
     } catch (err) {
       alert('Error updating AI Model: ' + err.message);
-      fetchData(); 
+      fetchData(false); // Refresh background if fail
     }
   };
 
   const handleAddSlot = async () => {
-    const cost = fees.add_slot || '...'; 
-
+    const cost = fees.add_slot || 0; 
     if (!isOwner || isExpired || !user || user.wallet_balance < cost) return alert('เงินไม่พอหรือตรวจสอบสิทธิ์');
-    if (!confirm(`ซื้อ Slot เพิ่ม (${cost} THB)?`)) return; // ✅ Confirm ราคาจริง
+    if (!confirm(`ซื้อ Slot เพิ่ม (${cost} THB)?`)) return;
+    
     try {
+      // ✅ Update State ทันที (Optimistic)
+      setUser(prev => ({ ...prev, wallet_balance: prev.wallet_balance - cost }));
+      setEvent(prev => ({ ...prev, max_cameras: (prev.max_cameras || 1) + 1 }));
+
       await supabase.from('users').update({ wallet_balance: user.wallet_balance - cost }).eq('id', user.id);
       await supabase.from('events').update({ max_cameras: (event.max_cameras || 1) + 1 }).eq('id', event.id);
 
       logEvent('add_camera_slot', {
-        user_id: user.id, 
-        user_name: user.full_name, 
-        event_id: event.id, 
-        cost: cost,
-        balance_before: user.wallet_balance, 
-        balance_after: user.wallet_balance - cost,
-        new_total_slots: (event.max_cameras || 1) + 1
+        user_id: user.id, event_id: event.id, cost: cost, new_total_slots: (event.max_cameras || 1) + 1
       });
-      fetchData();
-    } catch (err) { alert(err.message); }
+    } catch (err) { 
+        alert(err.message); 
+        fetchData(false); // Revert if error
+    }
   };
 
   const handleExtendStorage = async () => {
     const cost = fees.extend_storage || 50;
-
     if (!isOwner || !user || user.wallet_balance < cost) return alert('เงินไม่พอ');
-    if (!confirm(`ต่ออายุเพิ่ม 1 วัน (${cost} THB)?`)) return; // ✅ Confirm ราคาจริง
+    if (!confirm(`ต่ออายุเพิ่ม 1 วัน (${cost} THB)?`)) return;
 
     try {
+      // ✅ Update State ทันที
+      setUser(prev => ({ ...prev, wallet_balance: prev.wallet_balance - cost }));
+      setEvent(prev => ({ ...prev, storage_days: (prev.storage_days || 2) + 1 }));
+
       await supabase.from('users').update({ wallet_balance: user.wallet_balance - cost }).eq('id', user.id);
       await supabase.from('events').update({ storage_days: (event.storage_days || 2) + 1 }).eq('id', event.id);
+      
       logEvent('extend_storage', {
-        user_id: user.id, user_name: user.full_name, event_id: event.id, cost: cost,
-        balance_before: user.wallet_balance, balance_after: user.wallet_balance - cost,
-        new_total_days: (event.storage_days || 2) + 1
+        user_id: user.id, event_id: event.id, cost: cost, new_total_days: (event.storage_days || 2) + 1
       });
-      fetchData();
-    } catch (err) { alert(err.message); }
+    } catch (err) { 
+        alert(err.message);
+        fetchData(false); 
+    }
   };
 
   const handleCheckIn = async (camId) => {
     if (isExpired) return alert('งานหมดอายุแล้ว');
     try {
+      // ✅ Update UI ทันที (อาจจะยากหน่อยเพราะต้องย้ายจาก garage มา active แต่ทำได้)
+      const selectedCam = myGarage.find(c => c.id === camId);
+      if (selectedCam) {
+          // Fake object structure for immediate UI update
+          const newActiveCam = {
+              id: `temp-${Date.now()}`, camera_id: camId, user_id: user.id, status: 'active', 
+              cameras: selectedCam, users: user, ai_beauty_enabled: false
+          };
+          setActiveCameras(prev => [...prev, newActiveCam]);
+          setIsCheckInOpen(false);
+      }
+
       await supabase.from('event_cameras').update({ status: 'inactive', last_seen: new Date().toISOString() }).eq('camera_id', camId).eq('status', 'active');
       const { error } = await supabase.from('event_cameras').upsert({ event_id: event.id, camera_id: camId, user_id: user.id, status: 'active', last_seen: new Date().toISOString() }, { onConflict: 'event_id, camera_id' });
       if (error) throw error;
-      setIsCheckInOpen(false);
-      fetchData();
-    } catch (err) { alert('เกิดข้อผิดพลาดในการเชื่อมต่อกล้อง: ' + err.message); }
+      
+      fetchData(false); // Background sync เพื่อเอา ID จริง
+    } catch (err) { alert('เกิดข้อผิดพลาดในการเชื่อมต่อกล้อง: ' + err.message); fetchData(false); }
   };
 
   const handleUpdateEvent = async (e) => {
     e.preventDefault();
     try {
       const startTimeISO = editStartTime ? new Date(editStartTime).toISOString() : null;
-      await supabase.from('events').update({ title: editTitle, start_time: startTimeISO }).eq('id', event.id);
+      
+      // ✅ Update State ทันที
+      setEvent(prev => ({ ...prev, title: editTitle, start_time: startTimeISO }));
       setIsEditing(false);
-      fetchData();
-    } catch (err) { alert(err.message); }
+
+      await supabase.from('events').update({ title: editTitle, start_time: startTimeISO }).eq('id', event.id);
+    } catch (err) { alert(err.message); fetchData(false); }
   };
 
   const handleDisconnect = async (ac) => {
     if ((!isOwner && ac.user_id !== user.id) || isExpired) return alert('ไม่มีสิทธิ์หรือตรวจสอบสถานะงาน');
     if (confirm(`ยืนยันการนำกล้องออก?`)) {
+      // ✅ Update UI ทันที
+      setActiveCameras(prev => prev.filter(c => c.id !== ac.id));
+      
       await supabase.from('event_cameras').update({ status: 'inactive', last_seen: new Date().toISOString() }).eq('id', ac.id);
-      fetchData();
+      fetchData(false); // Background sync
     }
   };
+
+  // ... (ส่วนที่เหลือของ Component คงเดิม) ...
 
   const getPreviewPositionStyles = () => {
     if (isResizing) return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
@@ -311,7 +409,6 @@ export default function EventManagement() {
   const getEventDates = () => {
     if (!event?.created_at) return { start: null, expiry: null, isExpired: false, daysRemaining: 0 };
     const createdAt = new Date(event.created_at);
-    // ✅ คำนวณวันหมดอายุจาก start_time ถ้ามี
     const baseDate = event.start_time ? new Date(event.start_time) : createdAt;
     const expiry = new Date(baseDate.getTime() + ((event.storage_days || 2) * 24 * 60 * 60 * 1000));
     const now = new Date();
@@ -365,7 +462,7 @@ export default function EventManagement() {
     event={{
       title: event?.title,
       start: event?.start_time ? new Date(event.start_time) : null,
-      location: '' // ถ้ามี location ใน db ก็ใส่เพิ่ม
+      location: ''
     }}
     className="ml-2"
   />
@@ -409,7 +506,6 @@ export default function EventManagement() {
                   </div>
                 </div>
 
-                {/* ✅ ส่วนเลือก AI Model: Icon Only (Compact) */}
                 {ac.ai_beauty_enabled && (
                     <div className="mb-4 pt-3 border-t border-zinc-100 dark:border-zinc-800/50 animate-in slide-in-from-top-1">
                       <div className="flex items-center gap-2">
@@ -423,7 +519,7 @@ export default function EventManagement() {
                                key={model.id}
                                disabled={!isOwner}
                                onClick={() => handleSelectAIModel(ac.id, model.id)}
-                               title={`${model.name} - ${model.description} (฿${model.price_per_photo})`} // ยังคงมี Tooltip ไว้ดูรายละเอียด
+                               title={`${model.name} - ${model.description} (฿${model.price_per_photo})`}
                                className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shadow-sm ${
                                  isSelected 
                                    ? 'bg-blue-500 text-white shadow-blue-500/30 scale-110 ring-2 ring-blue-100 dark:ring-blue-900' 
@@ -442,21 +538,16 @@ export default function EventManagement() {
                   <h3 className="text-base font-medium truncate leading-tight">{ac.cameras?.nickname}</h3>
                   <p className="text-[10px] text-zinc-400 uppercase tracking-wider">{ac.cameras?.brand} {ac.cameras?.model}</p>
 
-                  {/* ✅ ส่วนแสดงรายละเอียดและราคา (Dynamic ตาม Model ที่เลือก) */}
                   {ac.ai_beauty_enabled && (() => {
-                      // หา Model ที่เลือก (ถ้าไม่มีใช้ตัวแรกเป็น Default)
                       const selectedModel = aiModels.find(m => m.id === (ac.ai_model_id || 1)) || aiModels[0];
                       
                       return (
                         <div className="mt-4 py-3 px-4 bg-pink-50 dark:bg-pink-900/10 rounded-2xl border border-pink-100 dark:border-pink-900/30 animate-in fade-in zoom-in duration-300">
-                            {/* แสดง Description - ปรับ font ใหญ่ขึ้นเป็น text-[10px] หรือ text-xs */}
                             {selectedModel?.description && (
                                 <p className="text-[10px] sm:text-xs text-zinc-600 dark:text-zinc-300 mb-2 leading-relaxed font-medium">
                                     {selectedModel.description}
                                 </p>
                             )}
-                            
-                            {/* แสดงราคา - ปรับ font ใหญ่ขึ้นและหนาขึ้น */}
                             <p className="text-[10px] sm:text-xs text-pink-600 dark:text-pink-400 font-bold flex items-center gap-2">
                                 <Sparkles size={14} fill="currentColor" /> 
                                 มีค่าใช้จ่าย {selectedModel?.price_per_photo || '1.2'} บาท/รูป
@@ -483,7 +574,6 @@ export default function EventManagement() {
           <section className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] overflow-hidden shadow-sm group/engine">
             <div className="px-6 py-5 border-b border-zinc-50 dark:border-zinc-800 flex items-center justify-between">
               <div><h2 className="text-sm font-bold tracking-tight">Watermark Settings</h2><p className="text-[10px] text-zinc-400 font-medium">จัดการลายน้ำสำหรับรูปภาพ RAW</p></div>
-              <button onClick={() => setWatermarkEnabled(!watermarkEnabled)} className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all border ${watermarkEnabled ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-800 shadow-sm' : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-400 border-zinc-100 dark:border-zinc-700'}`}><Power size={12} fill={watermarkEnabled ? "currentColor" : "none"} /><span className="text-[10px] font-black uppercase tracking-widest">{watermarkEnabled ? 'Active' : 'Disabled'}</span></button>
             </div>
             <div className="relative aspect-[16/9] md:aspect-[4/1] w-full bg-zinc-950 overflow-hidden flex items-center justify-center border-b border-zinc-100 dark:border-zinc-800">
               <div className="absolute inset-0 opacity-20">
@@ -515,7 +605,32 @@ export default function EventManagement() {
               <div className="flex items-center gap-6"><label className="flex items-center gap-3 cursor-pointer group"><input type="file" accept="image/png" onChange={handleWatermarkUpload} className="hidden" /><div className="w-10 h-10 rounded-2xl bg-zinc-950 text-white flex items-center justify-center group-hover:bg-blue-600 transition-all shadow-lg">{isUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}</div><div className="flex flex-col"><span className="text-[10px] font-black uppercase tracking-widest text-zinc-900 dark:text-white leading-none">Assets</span><span className="text-[8px] font-bold uppercase text-zinc-400 mt-1">.PNG Only</span></div></label></div>
               <div className="w-full md:flex-1 flex flex-col gap-2 md:max-w-[200px]"><div className="flex justify-between items-center px-1"><span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Real Size (Px)</span><span className="text-sm font-mono font-black text-blue-600 leading-none">{watermarkSize}px</span></div><div className="relative h-2.5 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden border border-zinc-50 dark:border-zinc-800 shadow-inner"><div className="absolute h-full bg-blue-600 rounded-full" style={{ width: `${((watermarkSize - 100) / 500) * 100}%` }} /><input type="range" min="100" max="600" step="1" value={watermarkSize} onChange={e => setWatermarkSize(parseInt(e.target.value))} onMouseDown={() => setIsResizing(true)} onMouseUp={() => setIsResizing(false)} onMouseLeave={() => setIsResizing(false)} onTouchStart={() => setIsResizing(true)} onTouchEnd={() => setIsResizing(false)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" /></div></div>
               <div className="w-full md:flex-1 flex flex-col gap-2 md:max-w-[200px]"><div className="flex justify-between items-center px-1"><span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Transparency</span><span className="text-sm font-mono font-black text-blue-600 leading-none">{Math.round(watermarkOpacity * 100)}%</span></div><div className="relative h-2.5 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden border border-zinc-50 dark:border-zinc-800 shadow-inner"><div className="absolute h-full bg-blue-600 rounded-full" style={{ width: `${watermarkOpacity * 100}%` }} /><input type="range" min="0" max="1" step="0.05" value={watermarkOpacity} onChange={e => setWatermarkOpacity(parseFloat(e.target.value))} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" /></div></div>
-              <button onClick={handleSaveWatermarkSettings} className="w-full md:w-auto px-8 py-4 md:py-3 bg-zinc-950 dark:bg-zinc-100 text-white dark:text-black font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] hover:bg-blue-600 hover:text-white transition-all active:scale-95 flex items-center justify-center gap-3 shadow-xl shadow-zinc-200 dark:shadow-none"><Save size={14} /> Commit Changes</button>
+              {/* ✅ ส่วนปุ่ม Active และ Saving Indicator */}
+              <div className="flex flex-col items-end gap-2 w-full md:w-auto relative"> {/* เพิ่ม relative เพื่อจัดการ layout */}
+                
+                <button 
+                    onClick={() => setWatermarkEnabled(!watermarkEnabled)} 
+                    className={`w-full md:w-auto px-8 py-3 rounded-2xl text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl transition-all ${
+                        watermarkEnabled 
+                            ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/20' 
+                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 hover:bg-zinc-200'
+                    }`}
+                >
+                    {/* ✅ เปลี่ยน Icon เป็น CheckCircle2 หรือ Stamp */}
+                    <CheckCircle2 size={16} className={watermarkEnabled ? "scale-110" : "opacity-50"} />
+                    {watermarkEnabled ? 'Watermark Active' : 'Watermark Disabled'}
+                </button>
+                
+                {/* ✅ Saving Indicator (Absolute Position เพื่อไม่ให้ดัน Layout) */}
+                <div className={`absolute -bottom-6 right-0 transition-opacity duration-300 ${isSavingWatermark ? 'opacity-100' : 'opacity-0'}`}>
+                    <span className="text-[9px] text-zinc-400 flex items-center gap-1.5 bg-white dark:bg-zinc-900 px-2 py-1 rounded-full border border-zinc-100 dark:border-zinc-800 shadow-sm">
+                        <RefreshCw size={10} className="animate-spin text-blue-500" /> 
+                        Saving changes...
+                    </span>
+                </div>
+
+              </div>
+
             </div>
           </section>
         )}
