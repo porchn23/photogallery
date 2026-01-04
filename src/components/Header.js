@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { supabase } from '@/src/lib/supabase';
 import { useRouter, usePathname } from 'next/navigation';
 
-export default function Header({ onQRClick, balance, user }) {
+export default function Header({ onQRClick, balance, user, isQROpen }) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -123,10 +123,13 @@ export default function Header({ onQRClick, balance, user }) {
           {onQRClick && (
             <button
               onClick={onQRClick}
-              className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full transition-all ${
-                isDashboard 
-                  ? "bg-zinc-100 dark:bg-zinc-800/50 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
-                  : "bg-zinc-900/50 hover:bg-zinc-800 text-white/80 border border-zinc-800"
+              className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full transition-all duration-300 ${
+                // ✅ Logic เช็คสถานะ
+                isQROpen
+                  ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] scale-110" // สถานะเปิด
+                  : isDashboard 
+                    ? "bg-zinc-100 dark:bg-zinc-800/50 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300" // สถานะปิด (Dashboard)
+                    : "bg-zinc-900/50 hover:bg-zinc-800 text-white/80 border border-zinc-800" // สถานะปิด (Public Page)
               }`}
             >
               <QrCode size={20} />

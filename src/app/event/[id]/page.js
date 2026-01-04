@@ -183,39 +183,44 @@ export default function EventGallery() {
 
        if (faces && mapping) {
         const clusterList = faces.map(f => {
-          const isPhotoInEvent = photoIds.includes(f.latest_photo_id);
-          let displayUrl = f.photos?.url_thumb;
+          // 1. หา Face ทั้งหมดของ Cluster นี้ที่มีในงานนี้
+          // (ต้อง filter จาก pics ด้วย เพื่อให้แน่ใจว่าเป็นรูปในงานนี้จริงๆ)
+          const allFacesInCluster = mapping.filter(m => m.cluster_id === f.id && photoIds.includes(m.photo_id));
+          
           let targetPhotoId = f.latest_photo_id;
+          let displayUrl = f.photos?.url_thumb;
+          let bestFace = null;
 
-          if (!isPhotoInEvent) {
-             const firstFaceInEvent = mapping.find(m => m.cluster_id === f.id);
-             if (firstFaceInEvent) {
-                const photoData = pics.find(p => p.id === firstFaceInEvent.photo_id);
-                if (photoData) {
-                   displayUrl = photoData.url_thumb;
-                   targetPhotoId = photoData.id;
-                }
+          if (allFacesInCluster.length > 0) {
+             // 2. เรียงลำดับตามความสวย (มาก -> น้อย)
+             allFacesInCluster.sort((a, b) => (b.beauty_score || 0) - (a.beauty_score || 0));
+             
+             // 3. เลือกตัวที่สวยที่สุด
+             bestFace = allFacesInCluster[0];
+             targetPhotoId = bestFace.photo_id;
+             
+             // 4. หารูปเพื่อเอา URL
+             const photoData = pics.find(p => p.id === targetPhotoId);
+             if (photoData) {
+                displayUrl = photoData.url_thumb;
              }
           }
 
-          const m = mapping.find(mi => mi.cluster_id === f.id && mi.photo_id === targetPhotoId);
+          // กรณีที่ไม่มีรูปในงานเลย (allFacesInCluster เป็น 0) ก็จะใช้ logic เดิม (f.latest_photo_id)
+          
+          // 5. ใช้ข้อมูล bounding box และ score จากรูปที่เลือกมา
+          const m = bestFace || mapping.find(mi => mi.cluster_id === f.id && mi.photo_id === targetPhotoId);
 
-          // 🔍 Debug แต่ละ Face
-          console.log(`DEBUG Face ${f.id}:`, {
-            hasUrl: !!displayUrl,
-            hasBox: !!m?.bounding_box,
-            targetPhotoId,
-            box: m?.bounding_box
-          });
-
+          // Debug เพื่อความชัวร์
+          // console.log(`Cluster ${f.id} Best Score: ${m?.beauty_score}`);
 
           return {
             id: f.id,
             url: displayUrl,
             box: m?.bounding_box,
-            count: mapping.filter(mi => mi.cluster_id === f.id).length,
+            count: allFacesInCluster.length, // นับเฉพาะรูปในงานนี้
             hero_score: f.hero_score || 0,
-            beauty_score: m?.beauty_score || 0
+            beauty_score: m?.beauty_score || 0 // ส่งคะแนนที่แท้จริงของรูปปกไป
           };
         });
         setClusters(clusterList);
@@ -269,7 +274,7 @@ export default function EventGallery() {
 
   return (
     <div className="fixed inset-0 bg-black text-white flex flex-col font-sans overflow-hidden">
-      <Header onQRClick={() => setShowQR(true)} />
+      <Header onQRClick={() => setShowQR((prev) => !prev)} isQROpen={showQR} />
       <div className="flex-1 overflow-y-auto scrollbar-hide">
         <div className="sticky top-0 z-40 bg-black">
           <FaceBar 

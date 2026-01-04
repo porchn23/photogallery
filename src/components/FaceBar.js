@@ -59,7 +59,7 @@ export default function FaceBar({
             const isSelected = selectedClusterId === face.id;
 
             const score = face.beauty_score || 0;
-            let badgeColor = null;
+            let badgeColor = 'bg-zinc-600 text-white border border-zinc-700'; 
             if (score >= 90) {
               badgeColor = 'bg-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.4)]'; // Top Star
             } else if (score >= 80) {
@@ -85,7 +85,7 @@ export default function FaceBar({
                   <div className={`absolute -top-1 -right-1 ${badgeColor} text-[9px] font-black px-1.5 py-0.5 rounded-full z-30 shadow-[0_2px_5px_rgba(0,0,0,0.5)] border border-black/20`}>
                     {score.toFixed(1)}
                   </div>
-                  
+
                 </div>
 
                 <div className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-tight transition-all ${isSelected ? 'bg-yellow-400 text-black scale-105' : 'bg-zinc-800 text-zinc-400'}`}>

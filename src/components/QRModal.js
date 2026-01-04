@@ -1,34 +1,44 @@
 // src/components/QRModal.js
 import QRCode from "react-qr-code"; 
-import { CircleX } from 'lucide-react';
-// ✅ รับ joinCode เพิ่มเข้ามา
-export default function QRModal({ show, onClose, url, joinCode }) {
+import { CircleX, Download, Image as ImageIcon } from 'lucide-react'; // เพิ่มไอคอนสื่อความหมาย
+
+export default function QRModal({ show, onClose, url, title, joinCode }) {
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={onClose}>
-      <div className="bg-white p-6 rounded-2xl shadow-2xl flex flex-col items-center relative" onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-2 right-2 text-zinc-400 hover:text-black">
-          <CircleX size={24} />
-        </button>
-        <h3 className="text-black font-bold text-lg mb-4">สแกนเพื่อดูรูปในมือถือ</h3>
+    // มุมล่างขวา
+    <div className="fixed bottom-4 right-4 z-[100] animate-in fade-in slide-in-from-bottom-4 duration-300 pointer-events-none">
+      <div className="bg-white/95 backdrop-blur-md text-zinc-900 p-3 rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.2)] border border-zinc-200 w-[200px] relative pointer-events-auto">
         
-        <div className="bg-white p-2 border-2 border-black rounded-lg mb-4">
-          <QRCode value={url || ""} size={200} />
-        </div>
+        {/* ปุ่มปิด */}
+        <button 
+          onClick={onClose}
+          className="absolute -top-2 -right-2 bg-zinc-900 text-white rounded-full p-1 shadow-md hover:scale-110 transition-transform z-10"
+        >
+          <CircleX size={16} />
+        </button>
 
-        {/* ✅ แสดง Join Code สำหรับตากล้องคนอื่นๆ */}
-        {joinCode && (
-          <div className="flex flex-col items-center bg-emerald-50 px-6 py-4 rounded-2xl border-2 border-emerald-100 w-full shadow-sm">
-            <span className="text-emerald-600/80 text-[10px] font-bold uppercase tracking-[0.1em] mb-1">
-              Photographer Join Code
-            </span>
-            <span className="text-emerald-600 font-black text-3xl tracking-[0.15em] drop-shadow-sm">
-              {joinCode}
-            </span>
+        <div className="text-center space-y-2">
+          
+          {/* Header Text */}
+          <div className="flex items-center justify-center gap-1.5 text-zinc-500 pb-1">
+            <ImageIcon size={10} />
+            <span className="text-[9px] font-bold uppercase tracking-wider">View & Download</span>
+            <Download size={10} />
           </div>
-        )}
 
+          {/* QR Code */}
+          <div className="bg-white p-1.5 rounded-lg border border-zinc-100 shadow-inner flex justify-center">
+             <QRCode value={url || ""} size={140} className="w-full h-auto" />
+          </div>
+
+          {joinCode && (
+            <div className="pt-2 border-t border-zinc-100 flex flex-col items-center">
+                <p className="text-[8px] font-bold text-zinc-400 uppercase tracking-widest mb-0.5">Event Code</p>
+                <p className="text-base font-black tracking-[0.2em] text-blue-600 leading-none">{joinCode}</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
