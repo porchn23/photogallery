@@ -60,9 +60,9 @@ export default function FaceBar({
 
             const score = face.beauty_score || 0;
             let badgeColor = 'bg-zinc-600 text-white border border-zinc-700'; 
-            if (score >= 90) {
+            if (score >= 85) {
               badgeColor = 'bg-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.4)]'; // Top Star
-            } else if (score >= 80) {
+            } else if (score >= 75) {
               badgeColor = 'bg-orange-500 text-white'; // Stunning
             }
 
