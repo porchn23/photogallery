@@ -58,7 +58,7 @@ export default function FaceBar({
           {clusters.map((face) => {
             const isSelected = selectedClusterId === face.id;
 
-            const score = face.beauty_score || 0;
+            const score = face.hero_score || 0; // เปลี่ยนจาก face.beauty_score เป็น face.hero_score
             let badgeColor = 'bg-zinc-600 text-white border border-zinc-700'; 
             if (score >= 85) {
               badgeColor = 'bg-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.4)]'; // Top Star
