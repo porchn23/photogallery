@@ -117,113 +117,83 @@ export default function EventGallery() {
   }
 
   async function fetchEventData() {
-    // 1. ดึงข้อมูลความสัมพันธ์ของกล้องและช่างภาพ (Join ตาราง cameras เพื่อเอา serial_number)
-    const { data: eventCameras } = await supabase
-      .from('event_cameras')
-      .select('cameras(serial_number), users(full_name)')
-      .eq('event_id', eventId);
+    setLoading(true);
 
-    // 2. สร้าง Map เพื่อเก็บชื่อช่างภาพโดยใช้ Serial Number เป็น Key
-    const camMap = (eventCameras || []).reduce((acc, item) => {
-      const sn = item.cameras?.serial_number;
-      const name = item.users?.full_name;
-      if (sn) acc[sn] = { name };
-      return acc;
-    }, {});
-
-    // 3. ดึงรูปภาพทั้งหมด
-    const { data: pics } = await supabase
-      .from('photos')
-      .select('*')
-      .eq('event_id', eventId)
-      .order('taken_at', { ascending: false });
+    // 1. ดึงข้อมูล 3 อย่างพร้อมกันเพื่อความเร็วสูงสุด (Parallel Fetching)
+    const [
+      { data: eventCameras },
+      { data: pics },
+      { data: faces }
+    ] = await Promise.all([
+      supabase.from('event_cameras').select('cameras(serial_number), users(full_name)').eq('event_id', eventId),
+      supabase.from('photos').select('*').eq('event_id', eventId).order('taken_at', { ascending: false }),
+      supabase.from('face_clusters').select('id, latest_photo_id, hero_score, photos:latest_photo_id(url_thumb)').eq('event_id', eventId).order('updated_at', { ascending: false })
+    ]);
 
     if (!pics) return;
 
-    // 4. แมพข้อมูลชื่อช่างภาพเข้ากับรูปภาพแต่ละใบ
+    // 2. สร้าง Index เพื่อการค้นหาที่รวดเร็ว (O(1) Lookup)
+    const camMap = (eventCameras || []).reduce((acc, item) => {
+      const sn = item.cameras?.serial_number;
+      if (sn) acc[sn] = item.users?.full_name;
+      return acc;
+    }, {});
+
+    const photoMap = new Map(pics.map(p => [p.id, p]));
+    
     const updatedPics = pics.map(p => ({
       ...p,
-      credit: { 
-        // ตรวจสอบจาก camMap โดยใช้ camera_serial จากตาราง photos
-        name: camMap[p.camera_serial]?.name || eventInfo.ownerName, 
-      }
+      credit: { name: camMap[p.camera_serial] || eventInfo.ownerName }
     }));
     setPhotos(updatedPics);
 
-    // 5. ดึง Mapping ใบหน้า
+    // 3. ดึง Mapping ใบหน้า
     const photoIds = pics.map(p => p.id);
     const { data: mapping } = await supabase
       .from('photo_faces')
       .select('*')
       .in('photo_id', photoIds);
 
-    // 🔴 DEBUG: ขอดูปริ้นข้อมูล Mapping 1 ตัวแรกแบบเต็มๆ หน่อยครับ
-    if (mapping && mapping.length > 0) {
-      console.log("🔥 RAW DB MAPPING[0]:", JSON.stringify(mapping[0], null, 2));
-    }
+    if (mapping && faces) {
+      setPhotoFaces(mapping);
+
+      // 4. จัดกลุ่ม Mapping ตาม Cluster ID ไว้ล่วงหน้า (เลิกใช้ .filter() ใน loop)
+      const mappingByCluster = mapping.reduce((acc, m) => {
+        if (!acc[m.cluster_id]) acc[m.cluster_id] = [];
+        acc[m.cluster_id].push(m);
+        return acc;
+      }, {});
+
+      // 5. สร้าง Cluster List โดยใช้การดึงค่าจาก Index (Map) แทนการวนลูปหา
+      const clusterList = faces.map(f => {
+        const clusterFaces = mappingByCluster[f.id] || [];
+        
+        let displayUrl = f.photos?.url_thumb;
+        let bestFace = null;
+
+        if (clusterFaces.length > 0) {
+          // เรียงลำดับด้วย quality_score เพื่อหารูปหน้าปกที่ชัดที่สุด
+          clusterFaces.sort((a, b) => (b.quality_score || 0) - (a.quality_score || 0));
+          bestFace = clusterFaces[0];
+          
+          // ใช้ photoMap เพื่อหา URL ทันที
+          const photoData = photoMap.get(bestFace.photo_id);
+          if (photoData) displayUrl = photoData.url_thumb;
+        }
+
+        const m = bestFace || clusterFaces.find(mi => mi.photo_id === f.latest_photo_id);
+
+        return {
+          id: f.id,
+          url: displayUrl,
+          box: m?.bounding_box,
+          count: clusterFaces.length,
+          hero_score: f.hero_score || 0, // แสดงคะแนนกลุ่มใน FaceBar
+          quality_score: m?.quality_score || 0 // คะแนนคุณภาพรายรูป
+        };
+      }).filter(cluster => cluster.count > 0); // แสดงเฉพาะกลุ่มที่มีรูปในงานนี้จริงๆ
       
-    
-    if (mapping) setPhotoFaces(mapping);
-
-    // 6. จัดการข้อมูล Face Clusters
-    const activeClusterIds = [...new Set(mapping.map(m => m.cluster_id))];
-    console.log("DEBUG: activeClusterIds (raw):", activeClusterIds);
-
-    if (activeClusterIds.length === 0) {
-       setClusters([]); 
-    } else {
-       const { data: faces } = await supabase
-        .from('face_clusters')
-        .select('id, latest_photo_id, hero_score, photos:latest_photo_id(url_thumb)')
-        .in('id', activeClusterIds)
-        .order('updated_at', { ascending: false }); // 🚀 หัวใจสำคัญ: เรียงจากใหม่ไปเก่า
-
-       console.log("DEBUG: faces data from DB:", faces); // 🔍 ดูว่าได้ข้อมูลจาก DB ไหม
-       
-
-       if (faces && mapping) {
-        const clusterList = faces.map(f => {
-          // 1. หา Face ทั้งหมดของ Cluster นี้ที่มีในงานนี้
-          const allFacesInCluster = mapping.filter(m => m.cluster_id === f.id && photoIds.includes(m.photo_id));
-          
-          let targetPhotoId = f.latest_photo_id;
-          let displayUrl = f.photos?.url_thumb;
-          let bestFace = null;
-
-          if (allFacesInCluster.length > 0) {
-             // 2. เรียงลำดับตามความสวย (มาก -> น้อย)
-             allFacesInCluster.sort((a, b) => (b.quality_score || 0) - (a.quality_score || 0));
-             
-             // 3. เลือกตัวที่สวยที่สุด
-             bestFace = allFacesInCluster[0];
-             targetPhotoId = bestFace.photo_id;
-             
-             // 4. หารูปเพื่อเอา URL
-             const photoData = pics.find(p => p.id === targetPhotoId);
-             if (photoData) {
-                displayUrl = photoData.url_thumb;
-             }
-          }
-
-          // กรณีที่ไม่มีรูปในงานเลย (allFacesInCluster เป็น 0) ก็จะใช้ logic เดิม (f.latest_photo_id)
-          
-          // 5. ใช้ข้อมูล bounding box และ score จากรูปที่เลือกมา
-          const m = bestFace || mapping.find(mi => mi.cluster_id === f.id && mi.photo_id === targetPhotoId);
-
-          // Debug เพื่อความชัวร์
-          // console.log(`Cluster ${f.id} Best Score: ${m?.beauty_score}`);
-
-          return {
-            id: f.id,
-            url: displayUrl,
-            box: m?.bounding_box,
-            count: allFacesInCluster.length, // นับเฉพาะรูปในงานนี้
-            hero_score: f.hero_score || 0,
-            quality_score: m?.quality_score || 0 
-          };
-        });
-        setClusters(clusterList);
-      }
+      setClusters(clusterList);
     }
 
     setLoading(false);
