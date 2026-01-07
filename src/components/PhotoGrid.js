@@ -1,9 +1,9 @@
 'use client';
-import { Camera, RefreshCw, Sparkles,Download } from 'lucide-react';
+import { Camera, RefreshCw, Sparkles, Download } from 'lucide-react';
 
 /**
  * AI FACE-GRID: PHOTO GRID COMPONENT
- * Version: 5.5 (Added AI Beauty Icon Overlay)
+ * Version: 5.6 (Added Smooth Animations & Stable Keys)
  * แบรนด์: Rooplife
  */
 
@@ -22,16 +22,12 @@ export default function PhotoGrid({ photos, loading, onPhotoClick }) {
   // ✅ ฟังก์ชันสำหรับดาวน์โหลดรูป (ปรับปรุง)
   const handleDownload = (e, photo) => {
     e.stopPropagation();
-    
     const filename = `rooplife-${photo.id}.jpg`;
-    
-    // เรียก API ภายในของเราเอง (ไม่มีปัญหา CORS)
     const downloadUrl = `/api/download?url=${encodeURIComponent(photo.url_raw)}&filename=${encodeURIComponent(filename)}`;
     
-    // สร้าง Link หลอกๆ เพื่อกดดาวน์โหลด
     const link = document.createElement('a');
     link.href = downloadUrl;
-    link.download = filename; // จริงๆ ชื่อไฟล์จะถูกจัดการโดย Header ของ API อยู่แล้ว
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -40,17 +36,24 @@ export default function PhotoGrid({ photos, loading, onPhotoClick }) {
   return (
     <div className="flex-1 p-1 min-h-[50vh] pt-4 pb-20">
       <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-0.5 md:gap-1">
-        {items.map((photo) => (
+        {items.map((photo, index) => (
           <div
-            key={photo.id}
+            key={photo.id} // ✅ สำคัญ: ใช้ ID เพื่อให้ React เลื่อนตำแหน่งแทนการวาดใหม่
             onClick={() => onPhotoClick(photo)}
-            className="relative aspect-[2/3] group overflow-hidden bg-zinc-900 rounded-md shadow-sm cursor-zoom-in active:scale-95 transition-transform"
+            className="relative aspect-[2/3] group overflow-hidden bg-zinc-900 rounded-md shadow-sm cursor-zoom-in active:scale-95 transition-all duration-500 
+            
+            /* ✅ Animation เมื่อรูปใหม่เข้าสู่ Grid */
+            animate-in fade-in zoom-in slide-in-from-top-2 fill-mode-both"
+            style={{ 
+                animationDelay: `${Math.min(index * 20, 400)}ms`, // ทยอยโผล่ทีละรูป
+                animationDuration: '500ms'
+            }}
           >
             {/* รูปภาพหลัก */}
             <img
               src={photo.url_thumb}
               loading="lazy"
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
               alt="Rooplife Gallery Item"
             />
 
@@ -61,20 +64,18 @@ export default function PhotoGrid({ photos, loading, onPhotoClick }) {
               </div>
             )}
 
-            {/* ✅ Download Button - แสดงเมื่อ Hover (หรือตลอดเวลาบนมือถือถ้าต้องการปรับ) */}
+            {/* ✅ Download Button */}
             <button 
                 onClick={(e) => handleDownload(e, photo)}
                 className="absolute z-20 bg-black/40 hover:bg-black/70 backdrop-blur-md rounded-full text-white/90 hover:text-white transition-all 
                 
-                /* Mobile Styles (Default) */
+                /* Mobile Styles */
                 opacity-100 p-3 bottom-3 left-1/2 -translate-x-1/2 shadow-lg active:scale-90
                 
-                /* Desktop Styles (lg breakpoint) */
+                /* Desktop Styles */
                 lg:opacity-0 lg:group-hover:opacity-100 lg:p-2 lg:bottom-1 lg:left-auto lg:right-1 lg:translate-x-0 lg:translate-y-2 lg:group-hover:translate-y-0 lg:shadow-none"
-                
                 title="Download"
             >
-                {/* Mobile Icon Size = 18 / Desktop Icon Size = 14 */}
                 <Download className="w-5 h-5 lg:w-3.5 lg:h-3.5" />
             </button>
 

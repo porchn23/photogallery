@@ -71,48 +71,122 @@ export default function EventGallery() {
     return result;
   }, [selectedClusterId, isAIOnly, photos, photoFaces]);
 
+  // ปรับการเรียกใช้ใน Realtime Subscription
   function setupRealtimeSubscription() {
     const channel = supabase.channel(`event-realtime-${eventId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'photos' }, (payload) => {
-        if (payload.new.event_id === eventId) fetchEventData();
+        // ส่ง true เข้าไปเพื่อให้เป็น Silent Refresh ไม่กระพริบ
+        if (payload.new.event_id === eventId) fetchEventData(true); 
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'photo_faces' }, () => fetchEventData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'face_clusters' }, () => fetchEventData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'photo_faces' }, () => fetchEventData(true))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'face_clusters' }, () => fetchEventData(true))
       .subscribe();
     return channel;
   }
 
-  async function fetchEventDetails() {
-    // ✅ ดึง storage_days เพิ่ม
-    const { data } = await supabase
-      .from('events')
-      .select('title, start_time, join_code, storage_days, created_at, users!events_owner_id_fkey(full_name)')
-      .eq('id', eventId)
-      .single();
+  async function fetchEventData(isSilent = false) {
+    // 1. ถ้าไม่ใช่ Silent Refresh (เช่น โหลดครั้งแรก) ให้แสดง Loading
+    if (!isSilent) setLoading(true);
 
-    if (data) {
-      setEventInfo({
-        title: data.title,
-        start: data.start_time ? new Date(data.start_time) : null,
-        joinCode: data.join_code,
-        ownerName: data.users?.full_name || 'RoopLife'
-      });
+    try {
+      // 2. ดึงข้อมูล 3 ส่วนหลักพร้อมกันเพื่อลด Network Latency (Parallel Fetching)
+      const [
+        { data: eventCameras },
+        { data: pics },
+        { data: faces }
+      ] = await Promise.all([
+        supabase
+          .from('event_cameras')
+          .select('cameras(serial_number), users(full_name)')
+          .eq('event_id', eventId),
+        supabase
+          .from('photos')
+          .select('*')
+          .eq('event_id', eventId)
+          .order('taken_at', { ascending: false }),
+        supabase
+          .from('face_clusters')
+          .select('id, latest_photo_id, hero_score, photos:latest_photo_id(url_thumb)')
+          .eq('event_id', eventId)
+          .order('updated_at', { ascending: false })
+      ]);
 
-      // ✅ คำนวณสถานะ Event
-      const now = new Date();
-      const start = new Date(data.start_time);
-      const expiry = new Date(start.getTime() + ((data.storage_days || 2) * 24 * 60 * 60 * 1000));
+      if (!pics) return;
 
-      if (now < start) {
-        setEventStatus('not_started');
-      } else if (now > expiry) {
-        setEventStatus('expired');
-      } else {
-        setEventStatus('active');
+      // 3. สร้าง Map สำหรับการค้นหาที่เร็วขึ้น (O(1) Lookup)
+      const camMap = (eventCameras || []).reduce((acc, item) => {
+        const sn = item.cameras?.serial_number;
+        if (sn) acc[sn] = item.users?.full_name;
+        return acc;
+      }, {});
+
+      // เก็บรูปภาพไว้ใน Map เพื่อให้ดึง URL ได้ทันทีไม่ต้องวนลูปหา
+      const photoMap = new Map(pics.map(p => [p.id, p]));
+      
+      const updatedPics = pics.map(p => ({
+        ...p,
+        credit: { 
+          name: camMap[p.camera_serial] || eventInfo.ownerName, 
+        }
+      }));
+
+      // 4. ดึง Mapping ใบหน้าทั้งหมดในงานนี้
+      const photoIds = pics.map(p => p.id);
+      const { data: mapping } = await supabase
+        .from('photo_faces')
+        .select('*')
+        .in('photo_id', photoIds);
+
+      if (mapping && faces) {
+        // 5. จัดกลุ่มใบหน้าตาม Cluster ID ไว้ล่วงหน้า (เพื่อเลิกใช้ .filter ภายใน Loop)
+        const mappingByCluster = mapping.reduce((acc, m) => {
+          if (!acc[m.cluster_id]) acc[m.cluster_id] = [];
+          acc[m.cluster_id].push(m);
+          return acc;
+        }, {});
+
+        // 6. สร้างรายการ Face Clusters ที่พร้อมแสดงผล
+        const clusterList = faces.map(f => {
+          const clusterFaces = mappingByCluster[f.id] || [];
+          
+          let displayUrl = f.photos?.url_thumb;
+          let bestFace = null;
+
+          if (clusterFaces.length > 0) {
+            // ✅ เรียงลำดับรูปในกลุ่มตาม quality_score เพื่อหารูปหน้าปกที่ชัดที่สุด
+            clusterFaces.sort((a, b) => (b.quality_score || 0) - (a.quality_score || 0));
+            
+            bestFace = clusterFaces[0];
+            
+            // ดึง URL ของรูปภาพที่ดีที่สุดจาก photoMap
+            const photoData = photoMap.get(bestFace.photo_id);
+            if (photoData) {
+              displayUrl = photoData.url_thumb;
+            }
+          }
+
+          // ใช้ข้อมูล Bounding Box จากรูปที่เลือกมา (bestFace)
+          const m = bestFace || clusterFaces.find(mi => mi.photo_id === f.latest_photo_id);
+
+          return {
+            id: f.id,
+            url: displayUrl,
+            box: m?.bounding_box,
+            count: clusterFaces.length, 
+            hero_score: f.hero_score || 0, // ✅ คะแนนกลุ่มสำหรับแสดงที่ FaceBar
+            quality_score: m?.quality_score || 0 // คะแนนคุณภาพของรูปหน้าปก
+          };
+        }).filter(cluster => cluster.count > 0); // ✅ กรองเฉพาะกลุ่มที่มีรูปภาพในงานนี้จริงๆ
+
+        // 7. อัปเดต State ทั้งหมดพร้อมกันเพื่อลดการ Re-render
+        setPhotos(updatedPics);
+        setPhotoFaces(mapping);
+        setClusters(clusterList);
       }
-    } else {
-       // กรณีไม่เจองาน
-       setEventStatus('expired'); 
+    } catch (err) {
+      console.error("Error fetching event data:", err);
+    } finally {
+      setLoading(false);
     }
   }
 
