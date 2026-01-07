@@ -184,7 +184,6 @@ export default function EventGallery() {
        if (faces && mapping) {
         const clusterList = faces.map(f => {
           // 1. หา Face ทั้งหมดของ Cluster นี้ที่มีในงานนี้
-          // (ต้อง filter จาก pics ด้วย เพื่อให้แน่ใจว่าเป็นรูปในงานนี้จริงๆ)
           const allFacesInCluster = mapping.filter(m => m.cluster_id === f.id && photoIds.includes(m.photo_id));
           
           let targetPhotoId = f.latest_photo_id;
@@ -193,7 +192,7 @@ export default function EventGallery() {
 
           if (allFacesInCluster.length > 0) {
              // 2. เรียงลำดับตามความสวย (มาก -> น้อย)
-             allFacesInCluster.sort((a, b) => (b.beauty_score || 0) - (a.beauty_score || 0));
+             allFacesInCluster.sort((a, b) => (b.hero_score || 0) - (a.hero_score || 0));
              
              // 3. เลือกตัวที่สวยที่สุด
              bestFace = allFacesInCluster[0];
