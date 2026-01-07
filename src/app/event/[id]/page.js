@@ -75,7 +75,6 @@ export default function EventGallery() {
   function setupRealtimeSubscription() {
     const channel = supabase.channel(`event-realtime-${eventId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'photos' }, (payload) => {
-        // ส่ง true เข้าไปเพื่อให้เป็น Silent Refresh ไม่กระพริบ
         if (payload.new.event_id === eventId) fetchEventData(true); 
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'photo_faces' }, () => fetchEventData(true))
@@ -84,13 +83,44 @@ export default function EventGallery() {
     return channel;
   }
 
-// ... existing code (บรรทัด 1-85) ...
+ // ✅ 1. เพิ่มฟังก์ชัน fetchEventDetails ที่หายไป
+ async function fetchEventDetails() {
+  const { data } = await supabase
+    .from('events')
+    .select('title, start_time, join_code, storage_days, created_at, users!events_owner_id_fkey(full_name)')
+    .eq('id', eventId)
+    .single();
+
+  if (data) {
+    setEventInfo({
+      title: data.title,
+      start: data.start_time ? new Date(data.start_time) : null,
+      joinCode: data.join_code,
+      ownerName: data.users?.full_name || 'RoopLife'
+    });
+
+    const now = new Date();
+    const start = new Date(data.start_time);
+    const expiry = new Date(start.getTime() + ((data.storage_days || 2) * 24 * 60 * 60 * 1000));
+
+    if (now < start) {
+      setEventStatus('not_started');
+    } else if (now > expiry) {
+      setEventStatus('expired');
+    } else {
+      setEventStatus('active');
+    }
+  } else {
+     setEventStatus('expired'); 
+  }
+}
+
+// ✅ 2. ใช้ fetchEventData เพียงตัวเดียว (ลบตัวที่ซ้ำซ้อนออก)
 async function fetchEventData(isSilent = false) {
   if (!eventId) return;
   if (!isSilent) setLoading(true);
 
   try {
-    // 1. ดึงข้อมูลแบบ Parallel และตรวจสอบ Error
     const results = await Promise.all([
       supabase.from('event_cameras').select('cameras(serial_number), users(full_name)').eq('event_id', eventId),
       supabase.from('photos').select('*').eq('event_id', eventId).order('taken_at', { ascending: false }),
@@ -106,7 +136,6 @@ async function fetchEventData(isSilent = false) {
       return;
     }
 
-    // 2. สร้าง Index เพื่อความเร็ว (O(1) Lookup)
     const camMap = eventCameras.reduce((acc, item) => {
       const sn = item.cameras?.serial_number;
       if (sn) acc[sn] = item.users?.full_name;
@@ -120,7 +149,6 @@ async function fetchEventData(isSilent = false) {
       credit: { name: camMap[p.camera_serial] || eventInfo.ownerName }
     }));
 
-    // 3. ดึง Mapping ใบหน้า
     const photoIds = pics.map(p => p.id);
     const { data: mapping } = await supabase
       .from('photo_faces')
@@ -129,22 +157,18 @@ async function fetchEventData(isSilent = false) {
 
     if (mapping) {
       setPhotoFaces(mapping);
-
-      // จัดกลุ่ม Mapping ตาม Cluster ID
       const mappingByCluster = mapping.reduce((acc, m) => {
         if (!acc[m.cluster_id]) acc[m.cluster_id] = [];
         acc[m.cluster_id].push(m);
         return acc;
       }, {});
 
-      // 4. สร้าง Cluster List
       const clusterList = faces.map(f => {
         const clusterFaces = mappingByCluster[f.id] || [];
         let displayUrl = f.photos?.url_thumb;
         let bestFace = null;
 
         if (clusterFaces.length > 0) {
-          // เรียงตาม quality_score เพื่อหาหน้าปก
           clusterFaces.sort((a, b) => (b.quality_score || 0) - (a.quality_score || 0));
           bestFace = clusterFaces[0];
           const photoData = photoMap.get(bestFace.photo_id);
@@ -174,100 +198,6 @@ async function fetchEventData(isSilent = false) {
   }
 }
 
-// ... existing code (บรรทัด 1-85) ...
-
-async function fetchEventData(isSilent = false) {
-  if (!eventId) return;
-  if (!isSilent) setLoading(true);
-
-  try {
-    // 1. ดึงข้อมูลพื้นฐานพร้อมกัน
-    const [
-      { data: eventCameras },
-      { data: pics },
-      { data: faces }
-    ] = await Promise.all([
-      supabase.from('event_cameras').select('cameras(serial_number), users(full_name)').eq('event_id', eventId),
-      supabase.from('photos').select('*').eq('event_id', eventId).order('taken_at', { ascending: false }),
-      supabase.from('face_clusters').select('id, latest_photo_id, hero_score, photos:latest_photo_id(url_thumb)').eq('event_id', eventId).order('updated_at', { ascending: false })
-    ]);
-
-    if (!pics || pics.length === 0) {
-      setLoading(false);
-      return;
-    }
-
-    // 2. สร้าง Index เพื่อการค้นหาที่รวดเร็ว (O(1))
-    const camMap = (eventCameras || []).reduce((acc, item) => {
-      const sn = item.cameras?.serial_number;
-      if (sn) acc[sn] = item.users?.full_name;
-      return acc;
-    }, {});
-
-    const photoMap = new Map(pics.map(p => [p.id, p]));
-    
-    const updatedPics = pics.map(p => ({
-      ...p,
-      credit: { name: camMap[p.camera_serial] || eventInfo.ownerName }
-    }));
-
-    // 3. ดึง Mapping ใบหน้า
-    const photoIds = pics.map(p => p.id);
-    const { data: mapping } = await supabase
-      .from('photo_faces')
-      .select('*')
-      .in('photo_id', photoIds);
-
-    if (mapping) {
-      setPhotoFaces(mapping);
-
-      // จัดกลุ่ม Mapping ตาม Cluster ID ล่วงหน้า
-      const mappingByCluster = mapping.reduce((acc, m) => {
-        if (!acc[m.cluster_id]) acc[m.cluster_id] = [];
-        acc[m.cluster_id].push(m);
-        return acc;
-      }, {});
-
-      // 4. สร้าง Cluster List
-      const clusterList = (faces || []).map(f => {
-        const clusterFaces = mappingByCluster[f.id] || [];
-        let displayUrl = f.photos?.url_thumb;
-        let bestFace = null;
-
-        if (clusterFaces.length > 0) {
-          // เรียงลำดับด้วย quality_score เพื่อหารูปหน้าปก
-          clusterFaces.sort((a, b) => (b.quality_score || 0) - (a.quality_score || 0));
-          bestFace = clusterFaces[0];
-          const photoData = photoMap.get(bestFace.photo_id);
-          if (photoData) displayUrl = photoData.url_thumb;
-        }
-
-        const m = bestFace || clusterFaces.find(mi => mi.photo_id === f.latest_photo_id);
-
-        return {
-          id: f.id,
-          url: displayUrl,
-          box: m?.bounding_box,
-          count: clusterFaces.length,
-          hero_score: f.hero_score || 0,
-          quality_score: m?.quality_score || 0
-        };
-      }).filter(cluster => cluster.count > 0);
-      
-      setClusters(clusterList);
-    }
-    setPhotos(updatedPics);
-
-  } catch (err) {
-    console.error("Fetch error:", err);
-  } finally {
-    setLoading(false);
-  }
-}
-
-// --- มั่นใจว่าลบโค้ด fetchEventData ซ้ำซ้อนที่อยู่หลังบรรทัดนี้ออกไปจนถึงก่อนบรรทัด 276 ---
-
-// ... existing code (บรรทัด 276 เป็นต้นไป) ...
 
 // ---------------------------------------------------------
   // ✅ โค้ดส่วนนี้ต้องอยู่นอกฟังก์ชัน fetchEventData แต่อยู่ใน Component
