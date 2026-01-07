@@ -192,7 +192,7 @@ export default function EventGallery() {
 
           if (allFacesInCluster.length > 0) {
              // 2. เรียงลำดับตามความสวย (มาก -> น้อย)
-             allFacesInCluster.sort((a, b) => (b.hero_score || 0) - (a.hero_score || 0));
+             allFacesInCluster.sort((a, b) => (b.quality_score || 0) - (a.quality_score || 0));
              
              // 3. เลือกตัวที่สวยที่สุด
              bestFace = allFacesInCluster[0];
@@ -219,7 +219,7 @@ export default function EventGallery() {
             box: m?.bounding_box,
             count: allFacesInCluster.length, // นับเฉพาะรูปในงานนี้
             hero_score: f.hero_score || 0,
-            beauty_score: m?.beauty_score || 0 // ส่งคะแนนที่แท้จริงของรูปปกไป
+            quality_score: m?.quality_score || 0 
           };
         });
         setClusters(clusterList);
