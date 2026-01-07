@@ -84,111 +84,95 @@ export default function EventGallery() {
     return channel;
   }
 
-  async function fetchEventData(isSilent = false) {
-    // 1. ถ้าไม่ใช่ Silent Refresh (เช่น โหลดครั้งแรก) ให้แสดง Loading
-    if (!isSilent) setLoading(true);
+// ... existing code (บรรทัด 1-85) ...
+async function fetchEventData(isSilent = false) {
+  if (!eventId) return;
+  if (!isSilent) setLoading(true);
 
-    try {
-      // 2. ดึงข้อมูล 3 ส่วนหลักพร้อมกันเพื่อลด Network Latency (Parallel Fetching)
-      const [
-        { data: eventCameras },
-        { data: pics },
-        { data: faces }
-      ] = await Promise.all([
-        supabase
-          .from('event_cameras')
-          .select('cameras(serial_number), users(full_name)')
-          .eq('event_id', eventId),
-        supabase
-          .from('photos')
-          .select('*')
-          .eq('event_id', eventId)
-          .order('taken_at', { ascending: false }),
-        supabase
-          .from('face_clusters')
-          .select('id, latest_photo_id, hero_score, photos:latest_photo_id(url_thumb)')
-          .eq('event_id', eventId)
-          .order('updated_at', { ascending: false })
-      ]);
+  try {
+    // 1. ดึงข้อมูลแบบ Parallel และตรวจสอบ Error
+    const results = await Promise.all([
+      supabase.from('event_cameras').select('cameras(serial_number), users(full_name)').eq('event_id', eventId),
+      supabase.from('photos').select('*').eq('event_id', eventId).order('taken_at', { ascending: false }),
+      supabase.from('face_clusters').select('id, latest_photo_id, hero_score, photos:latest_photo_id(url_thumb)').eq('event_id', eventId).order('updated_at', { ascending: false })
+    ]);
 
-      if (!pics) return;
+    const eventCameras = results[0].data || [];
+    const pics = results[1].data || [];
+    const faces = results[2].data || [];
 
-      // 3. สร้าง Map สำหรับการค้นหาที่เร็วขึ้น (O(1) Lookup)
-      const camMap = (eventCameras || []).reduce((acc, item) => {
-        const sn = item.cameras?.serial_number;
-        if (sn) acc[sn] = item.users?.full_name;
+    if (pics.length === 0 && faces.length === 0) {
+      setLoading(false);
+      return;
+    }
+
+    // 2. สร้าง Index เพื่อความเร็ว (O(1) Lookup)
+    const camMap = eventCameras.reduce((acc, item) => {
+      const sn = item.cameras?.serial_number;
+      if (sn) acc[sn] = item.users?.full_name;
+      return acc;
+    }, {});
+
+    const photoMap = new Map(pics.map(p => [p.id, p]));
+    
+    const updatedPics = pics.map(p => ({
+      ...p,
+      credit: { name: camMap[p.camera_serial] || eventInfo.ownerName }
+    }));
+
+    // 3. ดึง Mapping ใบหน้า
+    const photoIds = pics.map(p => p.id);
+    const { data: mapping } = await supabase
+      .from('photo_faces')
+      .select('*')
+      .in('photo_id', photoIds);
+
+    if (mapping) {
+      setPhotoFaces(mapping);
+
+      // จัดกลุ่ม Mapping ตาม Cluster ID
+      const mappingByCluster = mapping.reduce((acc, m) => {
+        if (!acc[m.cluster_id]) acc[m.cluster_id] = [];
+        acc[m.cluster_id].push(m);
         return acc;
       }, {});
 
-      // เก็บรูปภาพไว้ใน Map เพื่อให้ดึง URL ได้ทันทีไม่ต้องวนลูปหา
-      const photoMap = new Map(pics.map(p => [p.id, p]));
-      
-      const updatedPics = pics.map(p => ({
-        ...p,
-        credit: { 
-          name: camMap[p.camera_serial] || eventInfo.ownerName, 
+      // 4. สร้าง Cluster List
+      const clusterList = faces.map(f => {
+        const clusterFaces = mappingByCluster[f.id] || [];
+        let displayUrl = f.photos?.url_thumb;
+        let bestFace = null;
+
+        if (clusterFaces.length > 0) {
+          // เรียงตาม quality_score เพื่อหาหน้าปก
+          clusterFaces.sort((a, b) => (b.quality_score || 0) - (a.quality_score || 0));
+          bestFace = clusterFaces[0];
+          const photoData = photoMap.get(bestFace.photo_id);
+          if (photoData) displayUrl = photoData.url_thumb;
         }
-      }));
 
-      // 4. ดึง Mapping ใบหน้าทั้งหมดในงานนี้
-      const photoIds = pics.map(p => p.id);
-      const { data: mapping } = await supabase
-        .from('photo_faces')
-        .select('*')
-        .in('photo_id', photoIds);
+        const m = bestFace || clusterFaces.find(mi => mi.photo_id === f.latest_photo_id);
 
-      if (mapping && faces) {
-        // 5. จัดกลุ่มใบหน้าตาม Cluster ID ไว้ล่วงหน้า (เพื่อเลิกใช้ .filter ภายใน Loop)
-        const mappingByCluster = mapping.reduce((acc, m) => {
-          if (!acc[m.cluster_id]) acc[m.cluster_id] = [];
-          acc[m.cluster_id].push(m);
-          return acc;
-        }, {});
-
-        // 6. สร้างรายการ Face Clusters ที่พร้อมแสดงผล
-        const clusterList = faces.map(f => {
-          const clusterFaces = mappingByCluster[f.id] || [];
-          
-          let displayUrl = f.photos?.url_thumb;
-          let bestFace = null;
-
-          if (clusterFaces.length > 0) {
-            // ✅ เรียงลำดับรูปในกลุ่มตาม quality_score เพื่อหารูปหน้าปกที่ชัดที่สุด
-            clusterFaces.sort((a, b) => (b.quality_score || 0) - (a.quality_score || 0));
-            
-            bestFace = clusterFaces[0];
-            
-            // ดึง URL ของรูปภาพที่ดีที่สุดจาก photoMap
-            const photoData = photoMap.get(bestFace.photo_id);
-            if (photoData) {
-              displayUrl = photoData.url_thumb;
-            }
-          }
-
-          // ใช้ข้อมูล Bounding Box จากรูปที่เลือกมา (bestFace)
-          const m = bestFace || clusterFaces.find(mi => mi.photo_id === f.latest_photo_id);
-
-          return {
-            id: f.id,
-            url: displayUrl,
-            box: m?.bounding_box,
-            count: clusterFaces.length, 
-            hero_score: f.hero_score || 0, // ✅ คะแนนกลุ่มสำหรับแสดงที่ FaceBar
-            quality_score: m?.quality_score || 0 // คะแนนคุณภาพของรูปหน้าปก
-          };
-        }).filter(cluster => cluster.count > 0); // ✅ กรองเฉพาะกลุ่มที่มีรูปภาพในงานนี้จริงๆ
-
-        // 7. อัปเดต State ทั้งหมดพร้อมกันเพื่อลดการ Re-render
-        setPhotos(updatedPics);
-        setPhotoFaces(mapping);
-        setClusters(clusterList);
-      }
-    } catch (err) {
-      console.error("Error fetching event data:", err);
-    } finally {
-      setLoading(false);
+        return {
+          id: f.id,
+          url: displayUrl,
+          box: m?.bounding_box,
+          count: clusterFaces.length,
+          hero_score: f.hero_score || 0,
+          quality_score: m?.quality_score || 0
+        };
+      }).filter(cluster => cluster.count > 0);
+      
+      setClusters(clusterList);
     }
+    setPhotos(updatedPics);
+
+  } catch (err) {
+    console.error("Fetch error:", err);
+  } finally {
+    setLoading(false);
   }
+}
 
   async function fetchEventData() {
     setLoading(true);
