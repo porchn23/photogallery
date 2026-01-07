@@ -174,10 +174,14 @@ async function fetchEventData(isSilent = false) {
   }
 }
 
-  async function fetchEventData() {
-    setLoading(true);
+// ... existing code (บรรทัด 1-85) ...
 
-    // 1. ดึงข้อมูล 3 อย่างพร้อมกันเพื่อความเร็วสูงสุด (Parallel Fetching)
+async function fetchEventData(isSilent = false) {
+  if (!eventId) return;
+  if (!isSilent) setLoading(true);
+
+  try {
+    // 1. ดึงข้อมูลพื้นฐานพร้อมกัน
     const [
       { data: eventCameras },
       { data: pics },
@@ -188,9 +192,12 @@ async function fetchEventData(isSilent = false) {
       supabase.from('face_clusters').select('id, latest_photo_id, hero_score, photos:latest_photo_id(url_thumb)').eq('event_id', eventId).order('updated_at', { ascending: false })
     ]);
 
-    if (!pics) return;
+    if (!pics || pics.length === 0) {
+      setLoading(false);
+      return;
+    }
 
-    // 2. สร้าง Index เพื่อการค้นหาที่รวดเร็ว (O(1) Lookup)
+    // 2. สร้าง Index เพื่อการค้นหาที่รวดเร็ว (O(1))
     const camMap = (eventCameras || []).reduce((acc, item) => {
       const sn = item.cameras?.serial_number;
       if (sn) acc[sn] = item.users?.full_name;
@@ -203,7 +210,6 @@ async function fetchEventData(isSilent = false) {
       ...p,
       credit: { name: camMap[p.camera_serial] || eventInfo.ownerName }
     }));
-    setPhotos(updatedPics);
 
     // 3. ดึง Mapping ใบหน้า
     const photoIds = pics.map(p => p.id);
@@ -212,29 +218,26 @@ async function fetchEventData(isSilent = false) {
       .select('*')
       .in('photo_id', photoIds);
 
-    if (mapping && faces) {
+    if (mapping) {
       setPhotoFaces(mapping);
 
-      // 4. จัดกลุ่ม Mapping ตาม Cluster ID ไว้ล่วงหน้า (เลิกใช้ .filter() ใน loop)
+      // จัดกลุ่ม Mapping ตาม Cluster ID ล่วงหน้า
       const mappingByCluster = mapping.reduce((acc, m) => {
         if (!acc[m.cluster_id]) acc[m.cluster_id] = [];
         acc[m.cluster_id].push(m);
         return acc;
       }, {});
 
-      // 5. สร้าง Cluster List โดยใช้การดึงค่าจาก Index (Map) แทนการวนลูปหา
-      const clusterList = faces.map(f => {
+      // 4. สร้าง Cluster List
+      const clusterList = (faces || []).map(f => {
         const clusterFaces = mappingByCluster[f.id] || [];
-        
         let displayUrl = f.photos?.url_thumb;
         let bestFace = null;
 
         if (clusterFaces.length > 0) {
-          // เรียงลำดับด้วย quality_score เพื่อหารูปหน้าปกที่ชัดที่สุด
+          // เรียงลำดับด้วย quality_score เพื่อหารูปหน้าปก
           clusterFaces.sort((a, b) => (b.quality_score || 0) - (a.quality_score || 0));
           bestFace = clusterFaces[0];
-          
-          // ใช้ photoMap เพื่อหา URL ทันที
           const photoData = photoMap.get(bestFace.photo_id);
           if (photoData) displayUrl = photoData.url_thumb;
         }
@@ -246,16 +249,25 @@ async function fetchEventData(isSilent = false) {
           url: displayUrl,
           box: m?.bounding_box,
           count: clusterFaces.length,
-          hero_score: f.hero_score || 0, // แสดงคะแนนกลุ่มใน FaceBar
-          quality_score: m?.quality_score || 0 // คะแนนคุณภาพรายรูป
+          hero_score: f.hero_score || 0,
+          quality_score: m?.quality_score || 0
         };
-      }).filter(cluster => cluster.count > 0); // แสดงเฉพาะกลุ่มที่มีรูปในงานนี้จริงๆ
+      }).filter(cluster => cluster.count > 0);
       
       setClusters(clusterList);
     }
+    setPhotos(updatedPics);
 
+  } catch (err) {
+    console.error("Fetch error:", err);
+  } finally {
     setLoading(false);
   }
+}
+
+// --- มั่นใจว่าลบโค้ด fetchEventData ซ้ำซ้อนที่อยู่หลังบรรทัดนี้ออกไปจนถึงก่อนบรรทัด 276 ---
+
+// ... existing code (บรรทัด 276 เป็นต้นไป) ...
 
 // ---------------------------------------------------------
   // ✅ โค้ดส่วนนี้ต้องอยู่นอกฟังก์ชัน fetchEventData แต่อยู่ใน Component
