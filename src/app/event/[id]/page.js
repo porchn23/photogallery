@@ -176,7 +176,7 @@ export default function EventGallery() {
         .from('face_clusters')
         .select('id, latest_photo_id, hero_score, photos:latest_photo_id(url_thumb)')
         .in('id', activeClusterIds)
-        .order('updated_at', { ascending: false });
+        .order('updated_at', { ascending: false }); // 🚀 หัวใจสำคัญ: เรียงจากใหม่ไปเก่า
 
        console.log("DEBUG: faces data from DB:", faces); // 🔍 ดูว่าได้ข้อมูลจาก DB ไหม
        
