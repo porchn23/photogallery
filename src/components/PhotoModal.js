@@ -4,11 +4,14 @@ import { useEffect, useCallback, useState, useRef } from 'react';
 
 /**
  * AI FACE-GRID: PHOTO MODAL COMPONENT
- * Version: 5.8 (Added Cache Busting & AI Beauty Status Logic)
+ * Version: 5.9 (Realtime Sync & Fast Path Support)
  * แบรนด์: Rooplife
  */
 
 export default function PhotoModal({ photo, allPhotos, onClose, onPhotoChange, eventOwner }) {
+  // ✅ ค้นหาข้อมูลล่าสุดจาก list ทั้งหมด เพื่อให้ Modal อัปเดตตามสัญญาณ Realtime ที่ส่งมาจากหน้าหลัก
+  const currentPhotoData = allPhotos?.find(p => p.id === photo?.id) || photo;
+  
   const [isDownloading, setIsDownloading] = useState(false);
   
   // ใช้สำหรับตรวจจับการปัด (Swipe) เพื่อเปลี่ยนรูป
@@ -24,9 +27,8 @@ export default function PhotoModal({ photo, allPhotos, onClose, onPhotoChange, e
       time: date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'
     };
   };
-    // ค้นหาข้อมูลล่าสุดของรูปนี้จาก list ทั้งหมด เพื่อรองรับ Realtime อัปเดต
-  const currentPhotoData = allPhotos.find(p => p.id === photo.id) || photo;
-  const currentIndex = (allPhotos && photo) ? allPhotos.findIndex(p => p.id === photo.id) : -1;
+
+  const currentIndex = (allPhotos && currentPhotoData) ? allPhotos.findIndex(p => p.id === currentPhotoData.id) : -1;
 
   const handlePrev = useCallback(() => {
     if (currentIndex > 0) onPhotoChange(allPhotos[currentIndex - 1]);
@@ -69,18 +71,18 @@ export default function PhotoModal({ photo, allPhotos, onClose, onPhotoChange, e
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handlePrev, handleNext, onClose]);
 
-  if (!photo || !allPhotos) return null;
+  if (!currentPhotoData || !allPhotos) return null;
 
-  // ✅ แก้ไขฟังก์ชัน Download ให้รองรับ Cache Busting เพื่อให้ได้รูปเวอร์ชันล่าสุด
+  // ✅ แก้ไขฟังก์ชัน Download ให้เรียก API พร้อม Cache Busting
   const handleDownload = (e) => {
     e.stopPropagation();
-    if (!photo) return;
+    if (!currentPhotoData) return;
 
-    const filename = `rooplife-${photo.id}.jpg`;
+    const filename = `rooplife-${currentPhotoData.id}.jpg`;
     
-    // สร้าง Version Tag จาก updated_at
-    const version = new Date(photo.updated_at || photo.created_at).getTime();
-    const finalUrl = `${photo.url_raw}${photo.url_raw.includes('?') ? '&' : '?'}v=${version}`;
+    // สร้าง Version Tag จากข้อมูลล่าสุด
+    const version = new Date(currentPhotoData.updated_at || currentPhotoData.created_at).getTime();
+    const finalUrl = `${currentPhotoData.url_raw}${currentPhotoData.url_raw.includes('?') ? '&' : '?'}v=${version}`;
     
     // เรียก API Proxy เพื่อเลี่ยง CORS และปัญหา Private File
     const downloadUrl = `/api/download?url=${encodeURIComponent(finalUrl)}&filename=${encodeURIComponent(filename)}`;
@@ -112,21 +114,21 @@ export default function PhotoModal({ photo, allPhotos, onClose, onPhotoChange, e
         </button>
 
         <div className="bg-white p-1 shadow-inner rounded-lg border border-zinc-200 relative">
-          {/* ✅ เพิ่ม Cache Busting ใน src ของรูปภาพ */}
+          {/* ✅ รูปภาพหลัก: ใช้ currentPhotoData และ Cache Busting */}
           <img 
-            src={`${photo.url_raw}${photo.url_raw.includes('?') ? '&' : '?'}v=${new Date(photo.updated_at || photo.created_at).getTime()}`} 
+            src={`${currentPhotoData.url_raw}${currentPhotoData.url_raw.includes('?') ? '&' : '?'}v=${new Date(currentPhotoData.updated_at || currentPhotoData.created_at).getTime()}`} 
             alt="Full View" 
             className="w-full h-auto max-h-[60vh] object-contain mx-auto rounded" 
             draggable="false" 
           />
           
-          {/* ✅ ปรับปรุง AI Beauty Status Badge ให้รองรับ Pending/Processing/Completed */}
-          {photo.ai_beauty_status === 'completed' || photo.ai_beauty ? (
+          {/* ✅ AI Beauty Status Badge: ใช้ currentPhotoData เพื่อให้เปลี่ยนสถานะแบบ Realtime */}
+          {(currentPhotoData.ai_beauty_status === 'completed' || currentPhotoData.ai_beauty) ? (
             <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-pink-500/90 text-white rounded-full shadow-lg backdrop-blur-sm border border-white/20 animate-in fade-in zoom-in duration-300">
               <Sparkles size={12} fill="currentColor" />
               <span className="text-[10px] font-black uppercase tracking-widest leading-none">AI Beauty Active</span>
             </div>
-          ) : (photo.ai_beauty_status === 'pending' || photo.ai_beauty_status === 'processing') && (
+          ) : (currentPhotoData.ai_beauty_status === 'pending' || currentPhotoData.ai_beauty_status === 'processing') && (
             <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/90 text-white rounded-full shadow-lg backdrop-blur-sm border border-white/20 animate-pulse">
               <div className="w-2 h-2 bg-white rounded-full animate-ping" />
               <span className="text-[10px] font-black uppercase tracking-widest leading-none">AI Enhancing...</span>
@@ -145,7 +147,7 @@ export default function PhotoModal({ photo, allPhotos, onClose, onPhotoChange, e
                 <div>
                   <p className="text-[9px] uppercase tracking-widest text-zinc-400 font-bold leading-tight">Photographer</p>
                   <p className="text-sm font-bold text-zinc-900 italic leading-tight">
-                    {photo.credit?.name || 'Rooplife'}
+                    {currentPhotoData.credit?.name || 'Rooplife'}
                   </p>
                 </div>
               </div>
@@ -163,8 +165,8 @@ export default function PhotoModal({ photo, allPhotos, onClose, onPhotoChange, e
             </div>
 
             {/* ส่วนแสดงวันเวลาที่ถ่าย */}
-            {photo.taken_at && (() => {
-              const { date, time } = formatDateTimeFull(photo.taken_at);
+            {currentPhotoData.taken_at && (() => {
+              const { date, time } = formatDateTimeFull(currentPhotoData.taken_at);
               return (
                 <div className="flex items-center gap-2 pl-2 border-l-2 border-amber-400 py-1 font-sans">
                   <Clock size={14} className="text-zinc-400" />
