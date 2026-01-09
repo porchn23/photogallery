@@ -45,9 +45,11 @@ export default function PhotoGrid({ photos, loading, onPhotoClick }) {
             /* ✅ Animation เมื่อรูปใหม่เข้าสู่ Grid */
             animate-in fade-in zoom-in slide-in-from-top-2 fill-mode-both"
             style={{ 
-                animationDelay: `${Math.min(index * 20, 400)}ms`, // ทยอยโผล่ทีละรูป
-                animationDuration: '500ms'
-            }}
+              /* ✅ ปรับสูตร Delay ให้นุ่มนวลขึ้นแต่ยังใช้ index จาก Map เดิม */
+              animationDelay: `${(index % 20) * 40}ms`, 
+              animationDuration: '700ms',
+              animationTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)'
+          }}
           >
             {/* รูปภาพหลัก */}
             <img
