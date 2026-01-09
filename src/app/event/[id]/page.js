@@ -9,11 +9,11 @@ import FaceBar from '@/src/components/FaceBar';
 import PhotoGrid from '@/src/components/PhotoGrid';
 import PhotoModal from '@/src/components/PhotoModal';
 import QRModal from '@/src/components/QRModal';
-import { Clock, AlertTriangle } from 'lucide-react'; // ✅ เพิ่ม Icon
+import { Clock, AlertTriangle } from 'lucide-react';
 
 /**
  * AI FACE-GRID: EVENT GALLERY PAGE
- * Version: 5.9 (Fixed Photographer Credit Mapping)
+ * Version: 6.0 (Added Realtime Photo Update Support)
  * แบรนด์: Rooplife
  */
 
@@ -61,7 +61,7 @@ export default function EventGallery() {
   const filteredPhotos = useMemo(() => {
     if (!Array.isArray(photos)) return [];
     let result = photos;
-    if (isAIOnly) result = result.filter(p => p.ai_beauty === true);
+    if (isAIOnly) result = result.filter(p => p.ai_beauty === true || p.ai_beauty_status === 'completed');
     if (selectedClusterId) {
       const photoIdsInCluster = photoFaces
         .filter(pf => pf.cluster_id === selectedClusterId)
@@ -71,137 +71,153 @@ export default function EventGallery() {
     return result;
   }, [selectedClusterId, isAIOnly, photos, photoFaces]);
 
-  // ปรับการเรียกใช้ใน Realtime Subscription
+  // ✅ ปรับปรุงระบบ Realtime Subscription
   function setupRealtimeSubscription() {
     const channel = supabase.channel(`event-realtime-${eventId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'photos' }, (payload) => {
+      // 1. ดักจับรูปภาพใหม่
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'photos' 
+      }, (payload) => {
         if (payload.new.event_id === eventId) fetchEventData(true); 
       })
+      // 2. ✅ เพิ่มการดักจับการ UPDATE (เพื่ออัปเดตสถานะ AI Beauty ทันที)
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'photos' 
+      }, (payload) => {
+        if (payload.new.event_id === eventId) {
+          setPhotos(current => 
+            current.map(p => p.id === payload.new.id ? {
+              ...p,          // เก็บข้อมูลเดิมไว้ (เช่น credit)
+              ...payload.new // อัปเดตข้อมูลใหม่จาก Database (ai_beauty_status, updated_at)
+            } : p)
+          );
+        }
+      })
+      // 3. ดักจับการเปลี่ยนแปลงเรื่องใบหน้า
       .on('postgres_changes', { event: '*', schema: 'public', table: 'photo_faces' }, () => fetchEventData(true))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'face_clusters' }, () => fetchEventData(true))
       .subscribe();
+      
     return channel;
   }
 
- // ✅ 1. เพิ่มฟังก์ชัน fetchEventDetails ที่หายไป
- async function fetchEventDetails() {
-  const { data } = await supabase
-    .from('events')
-    .select('title, start_time, join_code, storage_days, created_at, users!events_owner_id_fkey(full_name)')
-    .eq('id', eventId)
-    .single();
+  async function fetchEventDetails() {
+    const { data } = await supabase
+      .from('events')
+      .select('title, start_time, join_code, storage_days, created_at, users!events_owner_id_fkey(full_name)')
+      .eq('id', eventId)
+      .single();
 
-  if (data) {
-    setEventInfo({
-      title: data.title,
-      start: data.start_time ? new Date(data.start_time) : null,
-      joinCode: data.join_code,
-      ownerName: data.users?.full_name || 'RoopLife'
-    });
+    if (data) {
+      setEventInfo({
+        title: data.title,
+        start: data.start_time ? new Date(data.start_time) : null,
+        joinCode: data.join_code,
+        ownerName: data.users?.full_name || 'RoopLife'
+      });
 
-    const now = new Date();
-    const start = new Date(data.start_time);
-    const expiry = new Date(start.getTime() + ((data.storage_days || 2) * 24 * 60 * 60 * 1000));
+      const now = new Date();
+      const start = new Date(data.start_time);
+      const expiry = new Date(start.getTime() + ((data.storage_days || 2) * 24 * 60 * 60 * 1000));
 
-    if (now < start) {
-      setEventStatus('not_started');
-    } else if (now > expiry) {
-      setEventStatus('expired');
+      if (now < start) {
+        setEventStatus('not_started');
+      } else if (now > expiry) {
+        setEventStatus('expired');
+      } else {
+        setEventStatus('active');
+      }
     } else {
-      setEventStatus('active');
+       setEventStatus('expired'); 
     }
-  } else {
-     setEventStatus('expired'); 
   }
-}
 
-// ✅ 2. ใช้ fetchEventData เพียงตัวเดียว (ลบตัวที่ซ้ำซ้อนออก)
-async function fetchEventData(isSilent = false) {
-  if (!eventId) return;
-  if (!isSilent) setLoading(true);
+  async function fetchEventData(isSilent = false) {
+    if (!eventId) return;
+    if (!isSilent) setLoading(true);
 
-  try {
-    const results = await Promise.all([
-      supabase.from('event_cameras').select('cameras(serial_number), users(full_name)').eq('event_id', eventId),
-      supabase.from('photos').select('*').eq('event_id', eventId).order('taken_at', { ascending: false }),
-      supabase.from('face_clusters').select('id, latest_photo_id, hero_score, photos:latest_photo_id(url_thumb)').eq('event_id', eventId).order('updated_at', { ascending: false })
-    ]);
+    try {
+      const results = await Promise.all([
+        supabase.from('event_cameras').select('cameras(serial_number), users(full_name)').eq('event_id', eventId),
+        supabase.from('photos').select('*').eq('event_id', eventId).order('taken_at', { ascending: false }),
+        supabase.from('face_clusters').select('id, latest_photo_id, hero_score, photos:latest_photo_id(url_thumb)').eq('event_id', eventId).order('updated_at', { ascending: false })
+      ]);
 
-    const eventCameras = results[0].data || [];
-    const pics = results[1].data || [];
-    const faces = results[2].data || [];
+      const eventCameras = results[0].data || [];
+      const pics = results[1].data || [];
+      const faces = results[2].data || [];
 
-    if (pics.length === 0 && faces.length === 0) {
-      setLoading(false);
-      return;
-    }
+      if (pics.length === 0 && faces.length === 0) {
+        setLoading(false);
+        return;
+      }
 
-    const camMap = eventCameras.reduce((acc, item) => {
-      const sn = item.cameras?.serial_number;
-      if (sn) acc[sn] = item.users?.full_name;
-      return acc;
-    }, {});
-
-    const photoMap = new Map(pics.map(p => [p.id, p]));
-    
-    const updatedPics = pics.map(p => ({
-      ...p,
-      credit: { name: camMap[p.camera_serial] || eventInfo.ownerName }
-    }));
-
-    const photoIds = pics.map(p => p.id);
-    const { data: mapping } = await supabase
-      .from('photo_faces')
-      .select('*')
-      .in('photo_id', photoIds);
-
-    if (mapping) {
-      setPhotoFaces(mapping);
-      const mappingByCluster = mapping.reduce((acc, m) => {
-        if (!acc[m.cluster_id]) acc[m.cluster_id] = [];
-        acc[m.cluster_id].push(m);
+      const camMap = eventCameras.reduce((acc, item) => {
+        const sn = item.cameras?.serial_number;
+        if (sn) acc[sn] = item.users?.full_name;
         return acc;
       }, {});
 
-      const clusterList = faces.map(f => {
-        const clusterFaces = mappingByCluster[f.id] || [];
-        let displayUrl = f.photos?.url_thumb;
-        let bestFace = null;
-
-        if (clusterFaces.length > 0) {
-          clusterFaces.sort((a, b) => (b.quality_score || 0) - (a.quality_score || 0));
-          bestFace = clusterFaces[0];
-          const photoData = photoMap.get(bestFace.photo_id);
-          if (photoData) displayUrl = photoData.url_thumb;
-        }
-
-        const m = bestFace || clusterFaces.find(mi => mi.photo_id === f.latest_photo_id);
-
-        return {
-          id: f.id,
-          url: displayUrl,
-          box: m?.bounding_box,
-          count: clusterFaces.length,
-          hero_score: f.hero_score || 0,
-          quality_score: m?.quality_score || 0
-        };
-      }).filter(cluster => cluster.count > 0);
+      const photoMap = new Map(pics.map(p => [p.id, p]));
       
-      setClusters(clusterList);
+      const updatedPics = pics.map(p => ({
+        ...p,
+        credit: { name: camMap[p.camera_serial] || eventInfo.ownerName }
+      }));
+
+      const photoIds = pics.map(p => p.id);
+      const { data: mapping } = await supabase
+        .from('photo_faces')
+        .select('*')
+        .in('photo_id', photoIds);
+
+      if (mapping) {
+        setPhotoFaces(mapping);
+        const mappingByCluster = mapping.reduce((acc, m) => {
+          if (!acc[m.cluster_id]) acc[m.cluster_id] = [];
+          acc[m.cluster_id].push(m);
+          return acc;
+        }, {});
+
+        const clusterList = faces.map(f => {
+          const clusterFaces = mappingByCluster[f.id] || [];
+          let displayUrl = f.photos?.url_thumb;
+          let bestFace = null;
+
+          if (clusterFaces.length > 0) {
+            clusterFaces.sort((a, b) => (b.quality_score || 0) - (a.quality_score || 0));
+            bestFace = clusterFaces[0];
+            const photoData = photoMap.get(bestFace.photo_id);
+            if (photoData) displayUrl = photoData.url_thumb;
+          }
+
+          const m = bestFace || clusterFaces.find(mi => mi.photo_id === f.latest_photo_id);
+
+          return {
+            id: f.id,
+            url: displayUrl,
+            box: m?.bounding_box,
+            count: clusterFaces.length,
+            hero_score: f.hero_score || 0,
+            quality_score: m?.quality_score || 0
+          };
+        }).filter(cluster => cluster.count > 0);
+        
+        setClusters(clusterList);
+      }
+      setPhotos(updatedPics);
+
+    } catch (err) {
+      console.error("Fetch error:", err);
+    } finally {
+      setLoading(false);
     }
-    setPhotos(updatedPics);
-
-  } catch (err) {
-    console.error("Fetch error:", err);
-  } finally {
-    setLoading(false);
   }
-}
 
-
-// ---------------------------------------------------------
-  // ✅ โค้ดส่วนนี้ต้องอยู่นอกฟังก์ชัน fetchEventData แต่อยู่ใน Component
-  // ---------------------------------------------------------
   if (eventStatus === 'not_started') {
     return (
       <div className="fixed inset-0 bg-black text-white flex flex-col items-center justify-center p-8 text-center font-sans">
