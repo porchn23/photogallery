@@ -443,102 +443,81 @@ export default function GuidePage() {
         {activeTab === 'team-join' && (
   <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
     
-    {/* 1. Header: The Philosophy */}
+    {/* 1. Header */}
     <div className="text-center space-y-4 max-w-2xl mx-auto">
-      <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">
-        Join Code Protocol
+      <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full text-[10px] font-black uppercase tracking-[0.3em]">
+        Step-by-Step Collaboration
       </div>
-      <h3 className="text-4xl font-black tracking-tighter uppercase italic text-zinc-900 dark:text-white leading-none">
-        หนึ่งโปรเจกต์ <span className="text-blue-600">ร้อยตากล้อง</span> <br/>
-        จบที่แกลเลอรีเดียว
+      <h3 className="text-4xl md:text-5xl font-black tracking-tighter uppercase italic text-zinc-900 dark:text-white leading-none">
+        ทำงานร่วมกัน <span className="text-blue-600">เป็นทีม</span>
       </h3>
       <p className="text-zinc-500 font-medium italic text-sm">
-        "ไม่ต้องแยกส่งลิงก์ให้ลูกค้าหลายที่ แค่ใช้ Join Code รูปจากทุกคนจะไหลมารวมกันทันที"
+        "รวมพลังตากล้องใน Event เดียวกันด้วย 3 ขั้นตอนง่ายๆ"
       </p>
     </div>
 
-    {/* 2. The 3-Step Journey */}
-    <div className="relative grid grid-cols-1 md:grid-cols-3 gap-12 max-w-5xl mx-auto px-4">
-      {/* Step 1: The Owner */}
-      <div className="relative group">
-        <div className="absolute -top-6 -left-6 text-8xl font-black text-zinc-100 dark:text-zinc-900/50 -z-10 group-hover:text-blue-500/10 transition-colors">01</div>
-        <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-100 dark:border-zinc-800 shadow-xl space-y-6 relative overflow-hidden h-full">
-          <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <Plus size={28} strokeWidth={2.5} />
-          </div>
-          <div className="space-y-2">
-            <h4 className="text-xl font-black italic">สร้าง Event</h4>
-            <p className="text-xs text-zinc-500 font-medium leading-relaxed uppercase tracking-wider">
-              เมื่อสร้าง Event เสร็จ คุณจะได้รับ <span className="text-blue-600 font-bold italic">Join Code 6 หลัก</span> เพื่อส่งให้เพื่อนตากล้องในทีม
-            </p>
-          </div>
-          <div className="pt-4 border-t border-zinc-50 dark:border-zinc-800 flex items-center justify-between">
-            <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest italic">Action: Event Owner</span>
-            <ArrowRight size={16} className="text-zinc-300 md:rotate-0 rotate-90" />
-          </div>
+    {/* 2. The 3-Step Journey with Large Centered Icons */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto px-4">
+      
+      {/* Step 1: สร้าง Event */}
+      <div className="bg-white dark:bg-zinc-900 p-10 rounded-[3.5rem] border border-zinc-100 dark:border-zinc-800 shadow-xl relative overflow-hidden flex flex-col items-center text-center group hover:-translate-y-2 transition-all duration-500">
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 text-[120px] font-black text-zinc-50 dark:text-zinc-800/30 -z-0 pointer-events-none">1</div>
+        
+        <div className="relative z-10 mb-8 w-24 h-24 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-[2rem] flex items-center justify-center shadow-inner group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white transition-all duration-500">
+          <Plus size={48} strokeWidth={2.5} />
+        </div>
+        
+        <div className="relative z-10 space-y-3">
+          <h4 className="text-2xl font-black italic tracking-tight">สร้าง Event</h4>
+          <p className="text-xs text-zinc-500 font-medium leading-relaxed uppercase tracking-wider max-w-[200px]">
+            สร้างโปรเจกต์ใหม่และรับ <span className="text-blue-600 font-bold">Join Code 6 หลัก</span> เพื่อส่งให้เพื่อนร่วมทีม
+          </p>
         </div>
       </div>
 
-      {/* Step 2: The Friend */}
-      <div className="relative group">
-        <div className="absolute -top-6 -left-6 text-8xl font-black text-zinc-100 dark:text-zinc-900/50 -z-10 group-hover:text-purple-500/10 transition-colors">02</div>
-        <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-100 dark:border-zinc-800 shadow-xl space-y-6 relative overflow-hidden h-full">
-          <div className="w-14 h-14 bg-purple-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/20">
-            <QrCode size={28} />
-          </div>
-          <div className="space-y-2">
-            <h4 className="text-xl font-black italic">เพื่อนกด Join</h4>
-            <p className="text-xs text-zinc-500 font-medium leading-relaxed uppercase tracking-wider">
-              เพื่อนตากล้องเลือกเมนู <span className="text-purple-600 font-bold italic">"Join Code"</span> ในหน้า Dashboard แล้วกรอกรหัส 6 หลักที่ได้รับ
-            </p>
-          </div>
-          <div className="pt-4 border-t border-zinc-50 dark:border-zinc-800 flex items-center justify-between">
-            <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest italic">Action: Team Members</span>
-            <ArrowRight size={16} className="text-zinc-300 md:rotate-0 rotate-90" />
-          </div>
+      {/* Step 2: เพื่อนกด Join */}
+      <div className="bg-white dark:bg-zinc-900 p-10 rounded-[3.5rem] border border-zinc-100 dark:border-zinc-800 shadow-xl relative overflow-hidden flex flex-col items-center text-center group hover:-translate-y-2 transition-all duration-500">
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 text-[120px] font-black text-zinc-50 dark:text-zinc-800/30 -z-0 pointer-events-none">2</div>
+        
+        <div className="relative z-10 mb-8 w-24 h-24 bg-purple-50 dark:bg-purple-900/20 text-purple-600 rounded-[2rem] flex items-center justify-center shadow-inner group-hover:scale-110 group-hover:bg-purple-600 group-hover:text-white transition-all duration-500">
+          <QrCode size={48} />
+        </div>
+        
+        <div className="relative z-10 space-y-3">
+          <h4 className="text-2xl font-black italic tracking-tight">เพื่อนกด Join</h4>
+          <p className="text-xs text-zinc-500 font-medium leading-relaxed uppercase tracking-wider max-w-[200px]">
+            เพื่อนตากล้องเลือกเมนู <span className="text-purple-600 font-bold">"Join Code"</span> ใน Dashboard แล้วกรอกรหัส 6 หลัก
+          </p>
         </div>
       </div>
 
-      {/* Step 3: Collaboration */}
-      <div className="relative group">
-        <div className="absolute -top-6 -left-6 text-8xl font-black text-zinc-100 dark:text-zinc-900/50 -z-10 group-hover:text-green-500/10 transition-colors">03</div>
-        <div className="bg-zinc-950 text-white p-8 rounded-[2.5rem] shadow-2xl space-y-6 relative overflow-hidden h-full">
-          <div className="w-14 h-14 bg-green-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-green-500/20">
-            <Camera size={28} />
-          </div>
-          <div className="space-y-2">
-            <h4 className="text-xl font-black italic">เพิ่มกล้องเข้างาน</h4>
-            <p className="text-xs text-zinc-400 font-medium leading-relaxed uppercase tracking-wider">
-              เพื่อนจะเห็น Event ของ Owner ทันที จากนั้นแค่ <span className="text-green-500 font-bold italic">เพิ่มกล้องตัวเอง</span> เพื่อเริ่มส่งรูปเข้าแกลเลอรีหลัก
-            </p>
-          </div>
-          <div className="pt-4 border-t border-white/5 flex items-center justify-between">
-            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest italic">Result: Shared Gallery</span>
-            <CheckCircle2 size={16} className="text-green-500" />
-          </div>
+      {/* Step 3: เพิ่มกล้องเข้างาน */}
+      <div className="bg-zinc-950 dark:bg-zinc-900/50 p-10 rounded-[3.5rem] border border-zinc-800 shadow-2xl relative overflow-hidden flex flex-col items-center text-center group hover:-translate-y-2 transition-all duration-500">
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 text-[120px] font-black text-white/5 dark:text-white/5 -z-0 pointer-events-none">3</div>
+        
+        <div className="relative z-10 mb-8 w-24 h-24 bg-green-500 text-white rounded-[2rem] flex items-center justify-center shadow-lg shadow-green-500/20 group-hover:scale-110 group-hover:bg-white group-hover:text-green-500 transition-all duration-500">
+          <Camera size={48} />
+        </div>
+        
+        <div className="relative z-10 space-y-3">
+          <h4 className="text-2xl font-black italic tracking-tight text-white">เพิ่มกล้องเข้างาน</h4>
+          <p className="text-xs text-zinc-400 font-medium leading-relaxed uppercase tracking-wider max-w-[200px]">
+            เพื่อนจะเห็น Event ของคุณทันที และสามารถ <span className="text-green-500 font-bold">เพิ่มกล้องตัวเอง</span> เพื่อเริ่มส่งรูป
+          </p>
         </div>
       </div>
+
     </div>
 
-    {/* 3. Outcome Summary */}
-    <div className="max-w-4xl mx-auto bg-blue-50 dark:bg-blue-900/10 rounded-[3rem] p-10 border border-blue-100 dark:border-blue-900/20 flex flex-col md:flex-row items-center gap-10">
-      <div className="flex-1 space-y-4 text-center md:text-left">
-         <h5 className="text-2xl font-black italic tracking-tight italic">แกลเลอรีเดียว.. ที่รวบรวมทุกความทรงจำ</h5>
-         <p className="text-sm text-zinc-500 font-medium italic leading-relaxed">
-           ไม่ว่าช่างภาพจะมาช่วยงานกี่คน หรือใช้กล้องกี่ตัว ลูกค้าไม่จำเป็นต้องสแกนหลายครั้ง เพียงเข้าลิงก์เดียว ระบบ AI จะรวบรวมรูปภาพจากตากล้องทุกคนมาแสดงผลแบบ Real-time ทันที
-         </p>
-      </div>
-      <div className="flex -space-x-4">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="w-14 h-14 rounded-full border-4 border-white dark:border-zinc-950 bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center shadow-xl">
-             <Camera size={20} className={i === 1 ? "text-blue-500" : i === 2 ? "text-purple-500" : "text-green-500"} />
-          </div>
-        ))}
+    {/* 3. Bottom Note */}
+    <div className="text-center pt-8">
+      <div className="inline-flex items-center gap-3 px-6 py-3 bg-zinc-100 dark:bg-zinc-800 rounded-2xl text-[11px] font-bold text-zinc-500 uppercase tracking-widest italic">
+        <CheckCircle2 size={16} className="text-green-500" />
+        รูปภาพจากทุกคนจะไหลมารวมกันที่แกลเลอรีเดียวโดยอัตโนมัติ
       </div>
     </div>
   </div>
 )}
-
 
         {/* Tab Content: Billing & Wallet (Full Redesign) */}
         {activeTab === 'billing' && (

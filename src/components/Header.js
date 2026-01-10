@@ -1,4 +1,4 @@
-import { QrCode, Wallet, LogOut, User, BookOpen, HelpCircle, Plus } from 'lucide-react';
+import { QrCode, Wallet, LogOut, User, BookOpen, HelpCircle, Plus,Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '@/src/lib/supabase';
@@ -105,11 +105,23 @@ export default function Header({ onQRClick, balance, user, isQROpen }) {
                 </div>
                 <Link 
   href="/dashboard/guide"
-  className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 rounded-lg transition-all"
+  className="relative w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-blue-500 transition-all duration-500 group"
   title="คู่มือการใช้งาน"
 >
-<BookOpen size={16} />
-</Link>                <button 
+  {/* พื้นหลังเรืองแสงเมื่อ Hover */}
+  <div className="absolute inset-0 bg-blue-500/10 rounded-full scale-0 group-hover:scale-125 transition-transform duration-500 blur-md" />
+  
+  <div className="relative">
+    <BookOpen size={18} className="group-hover:scale-110 transition-transform duration-300" />
+    
+    {/* จุด Pulse สีน้ำเงิน (ดึงดูดสายตา) */}
+    <span className="absolute -top-1 -right-1 flex h-2 w-2">
+      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+      <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+    </span>
+  </div>
+</Link>
+                <button 
                   onClick={handleLogout}
                   className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-all"
                 >
