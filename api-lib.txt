@@ -1,0 +1,41 @@
+📖 ROOPLIFE Photographer API Documentation (v1.0)
+🔗 Base URL
+http://your-domain.com/api/v1
+🔐 Authentication
+ทุก API (ยกเว้น Login) ต้องส่ง Header:
+Authorization: Bearer <supabase_access_token>
+1. 🏦 Wallet & Profile
+Function	Method	Endpoint	Description
+Get Balance	GET	/photographer/wallet/balance	ดึงยอดเงินบาทคงเหลือ
+Transaction History	GET	/photographer/wallet/history	ดูประวัติเงินเข้า-ออก
+2. 🎒 My Garage (คลังอุปกรณ์)
+Function	Method	Endpoint	Payload
+List Cameras	GET	/photographer/garage	-
+Register Camera	POST	/photographer/garage/create	{ "nickname": "Sony A7", "brand": "Sony" }
+Get FTP Info	GET	/photographer/garage/[id]/ftp	-
+Delete Camera	DELETE	/photographer/garage/[id]	- (Soft Delete)
+3. 📅 Event Management
+Function	Method	Endpoint	Payload
+Create Event	POST	/photographer/events/create	{ "title": "Wedding Gala", "start_time": "..." }
+Check-in Camera	POST	/photographer/events/[id]/check-in	{ "camera_id": "...", "ai_model_id": 1 }
+Add Slot	POST	/photographer/events/[id]/add-slot	(หัก 50 THB)
+Extend Storage	POST	/photographer/events/[id]/extend-storage	(หัก 50 THB)
+Event Health	GET	/photographer/events/[id]/health	สถิติจำนวนรูปและสถานะกล้อง
+Error Logs	GET	/photographer/events/[id]/errors	รายการรูปที่ AI ประมวลผลพลาด
+🎨 4. Watermark & AI Control
+Function	Method	Endpoint	Payload
+Upload Watermark	POST	/photographer/events/[id]/watermark/upload	multipart/form-data (key: file)
+Update Settings	PATCH	/photographer/events/[id]/watermark/settings	{ "enabled": true, "opacity": 0.8, ... }
+Toggle AI Beauty	PATCH	/photographer/events/[id]/cameras/[cameraId]	{ "action": "toggle" }
+Select AI Model	PATCH	/photographer/events/[id]/cameras/[cameraId]	{ "ai_model_id": 2 }
+💡 สิ่งที่ Mobile App ต้องทำเพิ่มเติม:
+QR Generator: ใช้ URL https://your-gallery-domain.com/event/[eventId] เพื่อสร้าง QR Code ให้แขกสแกน
+Real-time: ใช้ Supabase Client บนมือถือ Listen table photos หรือ event_cameras เพื่อทำไฟสถานะกะพริบแจ้งเตือนรูปใหม่
+Secure Storage: เก็บ Access Token และรหัส FTP ไว้ในที่ปลอดภัยในเครื่อง
+ตอนนี้โครงการ API ของคุณถือว่า "Feature Complete" ในเฟสแรกแล้วครับ!
+คุณต้องการให้ผมปรับแต่งส่วนไหนเพิ่มเติม หรือต้องการให้ผมช่วยร่างหน้าจอ Mobile App (Mockup) สำหรับใช้คู่กับ API เหล่านี้ไหมครับ?_
+
+
+1. ใช้ Supabase SDK (แนะนำที่สุดสำหรับ Mobile App)
+ถ้าคุณพัฒนา App ด้วย React Native, Flutter หรือภาษาอื่นๆ ให้ใช้ SDK ของ Supabase โดยตรง เมื่อตากล้อง Login สำเร็จ ให้ดึง Token ออกมาดังนี้ครับ:
+// ตัวอย่าง JavaScript (React Native / Web)const { data, error } = await supabase.auth.signInWithPassword({  email: 'photographer@example.com',  password: 'your-password',})if (data?.session) {  const token = data.session.access_token; // นี่คือ Token ที่ต้องส่งไปใน Header API  console.log("Token for API:", token);

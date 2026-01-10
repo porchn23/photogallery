@@ -11,6 +11,13 @@ export default function Header({ onQRClick, balance, user, isQROpen }) {
   // เช็คว่าเป็นหน้า dashboard หรือไม่
   const isDashboard = pathname?.startsWith('/dashboard');
 
+  // เพิ่มในไฟล์ JS สักที่ในหน้า Dashboard
+const getToken = async () => {
+  const { data } = await supabase.auth.getSession();
+  console.log("MY_ACCESS_TOKEN:", data?.session?.access_token);
+}
+getToken();
+
   const handleLogout = async () => {
     if (confirm('ยืนยันออกจากระบบ?')) {
       await supabase.auth.signOut();

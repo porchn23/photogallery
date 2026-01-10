@@ -2,11 +2,13 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/src/lib/supabaseServer'
 
-export async function GET() {
+export async function GET(request: Request){
   const supabase = await createClient()
   
   // ดึง User จาก Token ที่ Middleware ตรวจผ่านแล้ว
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: authError } = await supabase.auth.getUser(
+    request.headers.get('Authorization')?.split(' ')[1] // ดึงเฉพาะ Token หลังคำว่า Bearer
+  )
   
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
