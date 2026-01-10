@@ -107,7 +107,7 @@ export default function GuidePage() {
                 { 
                   step: "02", 
                   title: "ลงทะเบียนกล้อง (Garage)", 
-                  desc: "ไปที่เมนู 'โรงรถ' เพื่อเพิ่มกล้องของคุณ ระบบจะสร้างรหัส FTP ประจำตัวกล้องให้ (ห้ามใช้รหัสร่วมกัน)",
+                  desc: "ไปที่เมนู 'Garage' เพื่อเพิ่มกล้องของคุณ ระบบจะสร้างรหัส FTP ประจำตัวกล้องให้ (รหัสใช้ได้ 1 กล้อง/รหัส)",
                   icon: <Camera className="text-zinc-500" /> 
                 },
                 { 
@@ -218,7 +218,7 @@ export default function GuidePage() {
                   {
                     title: "Extra Slot",
                     desc: "เพิ่มจำนวนช่างภาพในทีม",
-                    price: "฿50",
+                    price: "฿59",
                     unit: "ต่อกล้อง",
                     icon: <Plus size={28} />,
                     color: "text-purple-500",
@@ -227,7 +227,7 @@ export default function GuidePage() {
                   {
                     title: "Extend Storage",
                     desc: "ขยายเวลาการเก็บรูปภาพ",
-                    price: "฿50",
+                    price: "฿49",
                     unit: "ต่อ 1 วัน",
                     icon: <Clock size={28} />,
                     color: "text-amber-500",
@@ -236,7 +236,7 @@ export default function GuidePage() {
                   {
                     title: "AI Beauty",
                     desc: "ปรับผิวเนียนอัจฉริยะ",
-                    price: "฿1.20",
+                    price: "฿0.9-1.2",
                     unit: "ต่อรูป",
                     icon: <Sparkles size={28} />,
                     color: "text-pink-500",
