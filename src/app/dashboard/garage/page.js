@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/src/lib/supabase';
 import Link from 'next/link';
 import Header from '@/src/components/Header';
-import { Camera } from 'lucide-react'; // เพิ่มไว้ด้านบนสุดร่วมกับ import อื่นๆ
+import { Camera, Trash2 } from 'lucide-react'; // เพิ่มไว้ด้านบนสุดร่วมกับ import อื่นๆ
 
 export default function MyGarage() {
     // --- ย้ายมาไว้ตรงนี้ (Body ของ Function) ---
@@ -55,16 +55,45 @@ async function fetchInitialData() {
 
 // ... existing code (บรรทัด 38 เป็นต้นไป)
 
-  async function fetchCameras(userId) {
-    const { data } = await supabase
-      .from('cameras')
-      .select('*')
-      .eq('owner_id', userId)
-      .order('created_at', { ascending: false });
-    
-    setCameras(data || []);
-    setLoading(false);
+async function fetchCameras(userId) {
+  const { data } = await supabase
+    .from('cameras')
+    .select('*')
+    .eq('owner_id', userId)
+    .neq('status', 'archived') // เพิ่มบรรทัดนี้: ไม่เอาตัวที่ถูกเก็บเข้ากรุแล้ว
+    .order('created_at', { ascending: false });
+  
+  setCameras(data || []);
+  setLoading(false);
+}
+
+const handleDeleteCamera = async (cameraId) => {
+  // 1. ถามเพื่อความแน่ใจ
+  if (!confirm('⚠️ ยืนยันการลบกล้อง? กล้องนี้จะถูกตัดการเชื่อมต่อจากทุก Event ที่ใช้งานอยู่ทันที')) return;
+  
+  try {
+      // 2. ลบออกจาก event_cameras ก่อน (เพื่อเคลียร์ Slot ในงานต่างๆ)
+      await supabase
+          .from('event_cameras')
+          .delete()
+          .eq('camera_id', cameraId);
+
+      // 3. ลบตัวกล้องออกจากคลัง (cameras)
+      const { error: deleteError } = await supabase
+          .from('cameras')
+          .delete()
+          .eq('id', cameraId);
+      
+      if (deleteError) throw deleteError;
+      
+      // 4. อัปเดต UI
+      fetchCameras(user.id);
+      alert('ลบข้อมูลกล้องและตัดการเชื่อมต่อเรียบร้อยแล้ว');
+      
+  } catch (err) {
+      alert('เกิดข้อผิดพลาด: ' + err.message);
   }
+};
 
   const handleAddCamera = async (e) => {
     e.preventDefault();
@@ -171,10 +200,25 @@ async function fetchInitialData() {
         </div>
       </div>
     </div>
-    <span className="flex items-center gap-1.5 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] font-bold rounded-full uppercase tracking-tighter">
-      <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-      {cam.status}
-    </span>
+
+
+    <div className="flex items-center gap-2">
+        <span className="flex items-center gap-1.5 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] font-bold rounded-full uppercase tracking-tighter">
+            <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+            {cam.status}
+        </span>
+        
+        {/* ปุ่มลบกล้อง */}
+        <button 
+            onClick={() => handleDeleteCamera(cam.id)}
+            className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
+            title="ลบกล้อง"
+        >
+            <Trash2 size={16} />
+        </button>
+    </div>
+
+
   </div>
 
   {/* ส่วนที่ 2: ข้อมูลการตั้งค่า FTP (Technical Config) - เน้นความชัดเจน */}
