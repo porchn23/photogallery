@@ -78,10 +78,10 @@ const handleDeleteCamera = async (cameraId) => {
           .delete()
           .eq('camera_id', cameraId);
 
-      // 3. ลบตัวกล้องออกจากคลัง (cameras)
+      // 3. เปลี่ยนสถานะกล้องเป็น archived (Soft Delete) แทนการใช้ .delete()
       const { error: deleteError } = await supabase
           .from('cameras')
-          .delete()
+          .update({ status: 'archived' }) // เปลี่ยนสถานะเป็น archived
           .eq('id', cameraId);
       
       if (deleteError) throw deleteError;

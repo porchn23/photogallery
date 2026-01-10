@@ -11,6 +11,8 @@ CREATE TABLE public.ai_models (
   price_per_photo numeric NOT NULL DEFAULT 0.00,
   is_active boolean DEFAULT true,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  icon_name text DEFAULT 'Sparkles'::text,
+  parameters jsonb DEFAULT '{}'::jsonb,
   CONSTRAINT ai_models_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.cameras (
@@ -115,6 +117,7 @@ CREATE TABLE public.photo_faces (
   bounding_box jsonb,
   created_at timestamp with time zone DEFAULT now(),
   quality_score double precision DEFAULT 0,
+  beauty_score double precision DEFAULT 0,
   CONSTRAINT photo_faces_pkey PRIMARY KEY (id),
   CONSTRAINT photo_faces_photo_id_fkey FOREIGN KEY (photo_id) REFERENCES public.photos(id),
   CONSTRAINT photo_faces_cluster_id_fkey FOREIGN KEY (cluster_id) REFERENCES public.face_clusters(id)
@@ -129,6 +132,9 @@ CREATE TABLE public.photos (
   created_at timestamp with time zone DEFAULT now(),
   camera_serial text,
   ai_beauty boolean DEFAULT false,
+  phash text,
+  ai_beauty_status text DEFAULT 'none'::text,
+  updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT photos_pkey PRIMARY KEY (id),
   CONSTRAINT photos_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id)
 );
@@ -144,13 +150,21 @@ CREATE TABLE public.processing_jobs (
   CONSTRAINT processing_jobs_pkey PRIMARY KEY (id),
   CONSTRAINT processing_jobs_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id)
 );
+CREATE TABLE public.service_fees (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  service_key text NOT NULL UNIQUE,
+  price numeric NOT NULL DEFAULT 0,
+  description text,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT service_fees_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.users (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   current_event_id uuid,
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   phone_number text,
   avatar_url text,
-  wallet_balance numeric DEFAULT 0 CHECK (wallet_balance >= 0::numeric),
+  wallet_balance numeric DEFAULT '200'::numeric CHECK (wallet_balance >= 0::numeric),
   full_name text,
   CONSTRAINT users_pkey PRIMARY KEY (id)
 );

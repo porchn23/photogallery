@@ -184,7 +184,7 @@ export default function EventManagement() {
       const [garageRes, activeCamsRes, historyCamsRes] = await Promise.all([
         supabase.from('cameras').select('*').eq('owner_id', authUser.id),
         supabase.from('event_cameras').select('*, cameras(*), users(*)').eq('event_id', realId).eq('status', 'active'),
-        supabase.from('event_cameras').select('*, cameras(*), users(*)').eq('event_id', realId).neq('status', 'active').order('created_at', { ascending: false }).limit(4)
+        supabase.from('event_cameras').select('*, cameras(*), users(*)').eq('event_id', realId).neq('status', 'active').order('created_at',{ ascending: false }).limit(4)
       ]);
 
       setAiModels(aiModelsRes.data || []);
@@ -344,28 +344,58 @@ export default function EventManagement() {
     }
   };
 
-  const handleCheckIn = async (camId) => {
-    if (isExpired) return alert('งานหมดอายุแล้ว');
-    try {
-      // ✅ Update UI ทันที (อาจจะยากหน่อยเพราะต้องย้ายจาก garage มา active แต่ทำได้)
-      const selectedCam = myGarage.find(c => c.id === camId);
-      if (selectedCam) {
-          // Fake object structure for immediate UI update
-          const newActiveCam = {
-              id: `temp-${Date.now()}`, camera_id: camId, user_id: user.id, status: 'active', 
-              cameras: selectedCam, users: user, ai_beauty_enabled: false
-          };
-          setActiveCameras(prev => [...prev, newActiveCam]);
-          setIsCheckInOpen(false);
-      }
+const handleCheckIn = async (camId) => {
+  if (isExpired) return alert('งานหมดอายุแล้ว');
+  
+  // ตรวจสอบก่อนว่ามี ID นี้จริงๆ หรือไม่
+  if (!camId) return alert('ไม่พบรหัสกล้อง');
 
-      await supabase.from('event_cameras').update({ status: 'inactive', last_seen: new Date().toISOString() }).eq('camera_id', camId).eq('status', 'active');
-      const { error } = await supabase.from('event_cameras').upsert({ event_id: event.id, camera_id: camId, user_id: user.id, status: 'active', last_seen: new Date().toISOString() }, { onConflict: 'event_id, camera_id' });
-      if (error) throw error;
-      
-      fetchData(false); // Background sync เพื่อเอา ID จริง
-    } catch (err) { alert('เกิดข้อผิดพลาดในการเชื่อมต่อกล้อง: ' + err.message); fetchData(false); }
-  };
+  try {
+    // 1. จัดการ Optimistic UI (คงเดิม)
+    const selectedCam = myGarage.find(c => c.id === camId);
+    if (selectedCam) {
+      const newActiveCam = {
+        id: `temp-${Date.now()}`, 
+        camera_id: camId, 
+        user_id: user.id, 
+        status: 'active', 
+        cameras: selectedCam, 
+        users: user, 
+        ai_beauty_enabled: false
+      };
+      setActiveCameras(prev => [...prev, newActiveCam]);
+      setIsCheckInOpen(false);
+    }
+
+    // 2. ปิดสถานะ Active เดิมของกล้องตัวนี้ในงานอื่นๆ (ถ้ามี)
+    await supabase.from('event_cameras')
+      .update({ status: 'inactive', last_seen: new Date().toISOString() })
+      .eq('camera_id', camId)
+      .eq('status', 'active');
+
+    // 3. ใช้ upsert โดยระบุ onConflict ให้ชัดเจน 
+    // และตรวจสอบว่า event.id และ user.id มีค่าแน่นอน
+    const { error } = await supabase.from('event_cameras').upsert({ 
+      event_id: event.id, 
+      camera_id: camId, 
+      user_id: user.id, 
+      status: 'active', 
+      last_seen: new Date().toISOString(),
+      ai_beauty_enabled: false, // ใส่ค่าเริ่มต้นให้ครบ
+      ai_model_id: 1            // ใส่ค่าเริ่มต้นให้ครบ
+    }, { 
+      onConflict: 'event_id, camera_id' 
+    });
+
+    if (error) throw error;
+    
+    fetchData(false); // โหลดข้อมูลจริงมาทับ Optimistic UI
+  } catch (err) { 
+    console.error("Check-in Error:", err);
+    alert('เกิดข้อผิดพลาดในการเชื่อมต่อกล้อง: ' + err.message); 
+    fetchData(false); 
+  }
+};
 
   const handleUpdateEvent = async (e) => {
     e.preventDefault();

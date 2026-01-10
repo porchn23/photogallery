@@ -1,0 +1,135 @@
+📱 Photographer Mobile App: API Project Blueprint
+Project: ROOPLIFE Photographer Command Center (Back-office Tools)
+Status: Planning Phase (Updated with Watermark Module)
+🏗️ 1. Core Modules & API Roadmap
+📦 Module 1: Core Wallet & Auth (ระบบการเงินและความปลอดภัย)
+จัดการเรื่องสิทธิ์การเข้าถึงและยอดเงินคงเหลือ
+POST /api/v1/auth/login - เข้าสู่ระบบ (Supabase Auth)
+GET /api/v1/wallet/balance - ดึงยอดเงินปัจจุบัน (wallet_balance)
+POST /api/v1/wallet/topup - สร้าง PromptPay QR สำหรับเติมเงิน (Omise)
+GET /api/v1/wallet/history - ดูประวัติการหักเงิน (ค่าเปิดงาน, ค่า Slot, ค่า AI รายรูป)
+
+📦 Module 2: Event Operations (การจัดการงานและค่าธรรมเนียม)
+กลุ่มฟังก์ชันที่ใช้ "หักเงิน" และ "ควบคุมสถานะงาน"
+POST /api/v1/events/create - สร้างงาน (หัก 100 THB) -> รับ Join Code
+POST /api/v1/events/[id]/add-slot - ซื้อ Slot กล้องเพิ่ม (หัก 50 THB/Slot)
+POST /api/v1/events/[id]/extend - ต่ออายุการเก็บรูป (หัก 50 THB/วัน)
+GET /api/v1/ai/models - รายการ AI Model และราคา (price_per_photo)
+POST /api/v1/events/[id]/extend-storage
+
+📦 Module 3: Equipment & Connection (ระบบเชื่อมต่อหน้างาน)
+อำนวยความสะดวกในการเซ็ตอัพอุปกรณ์
+GET /api/v1/garage - รายการกล้องในคลัง
+GET /api/v1/garage/[id]/ftp - ดึง FTP User/Pass ประจำกล้อง
+POST /api/v1/garage/create - สร้างรายการกล้อง create ftp account รับแค่ชื่อกล้อง
+POST /api/v1/events/[id]/check-in - เสียบกล้องเข้า Slot งาน
+GET /api/v1/events/[id]/qr - แสดง QR Code สำหรับแขกสแกนเข้า Gallery
+📦 Module 4: Live Monitoring & AI Health (ระบบติดตาม)
+ตรวจสอบความเรียบร้อยและปัญหาหน้างาน
+GET /api/v1/events/[id]/health - จำนวนรูปทั้งหมด และสถานะกล้อง (Online/Offline)
+GET /api/v1/events/[id]/errors - รายการรูปที่ประมวลผล AI พลาด (จาก processing_jobs)
+🎨 2. Watermark Management Module (รายละเอียดเชิงลึก)
+จัดการลายน้ำผ่านมือถือ ตาราง: public.events
+2.1 Upload Watermark (PNG)
+Endpoint: POST /api/v1/events/[id]/watermark/upload
+Method: multipart/form-data (Key: file)
+Logic: รับเฉพาะไฟล์ .png โปร่งใส, อัปโหลดเข้า Storage, อัปเดต watermark_path และ watermark_version
+2.2 Watermark Settings
+Endpoint: PATCH /api/v1/events/[id]/watermark/settings
+Payload:
+    {      "enabled": true,         // watermark_enabled      "opacity": 0.8,          // watermark_opacity (0.0 - 1.0)      "size": 400,             // watermark_size (pixels)      "position": "bottom-right" // watermark_position    }
+2.3 Get Watermark Config
+Endpoint: GET /api/v1/events/[id]/watermark
+Success Response: ส่งคืนค่า Settings ทั้งหมดพร้อม URL ของไฟล์ลายน้ำ
+💰 3. Business Logic & Rules (กฎเหล็ก)
+Server-side Security: การหักเงิน (wallet_balance) ทุกกรณี ต้องทำผ่าน API ฝั่ง Server เท่านั้น ห้าม Client อัปเดตยอดเงินเอง
+PNG Standard: ระบบรองรับเฉพาะไฟล์ PNG สำหรับลายน้ำ เพื่อรักษาคุณภาพและความโปร่งใส
+Cache Busting: ใช้ watermark_version (Timestamp) ในการดึงรูป เพื่อให้ Mobile App และระบบประมวลผลเห็นรูปใหม่ทันทีหลังอัปโหลด
+Pricing Policy:
+สร้างงาน: 100 บาท
+เพิ่ม Slot: 50 บาท
+ต่ออายุ: 50 บาท
+AI: ตามราคา Model (เช่น 1.2 บาท/รูป)
+
+1. ระบบจัดการทีมและสมาชิก (Member Management)
+Web Dashboard: มีระบบ Kick Member (ลบสมาชิกออกจากงาน) และการตรวจสอบ Role (Owner vs Contributor)
+API ยังขาด:
+GET /api/v1/events/[id]/members: ดูรายชื่อสมาชิกในงาน
+DELETE /api/v1/events/[id]/members/[userId]: เตะสมาชิกออกจากงาน (เฉพาะ Owner)
+2. การควบคุมรายกล้อง (Per-Camera Control)
+Web Dashboard: สามารถเลือก AI Model และเปิด-ปิด AI Beauty แยกกันได้ "รายกล้อง" ในงานเดียวกัน (ไม่ได้ปรับทั้งอีเวนต์)
+API ยังขาด:
+PATCH /api/v1/events/[id]/cameras/[camera_id]: ปรับแต่งค่า AI หรือตัดการเชื่อมต่อ (Disconnect) กล้องตัวนั้นๆ ออกจากงาน
+3. ระบบจัดการใบหน้า (Face & AI Management)
+Web Dashboard: มีการแสดง Face Clusters (กลุ่มใบหน้าที่ AI ตรวจพบ) และ Face Avatar เพื่อกรองดูรูปตามคน
+API ยังขาด:
+GET /api/v1/events/[id]/faces: ดึงข้อมูลกลุ่มใบหน้าที่ตรวจพบในงานนี้
+GET /api/v1/events/[id]/faces/[cluster_id]: ดึงรูปภาพที่มีใบหน้าของคนนี้ (เพื่อมอนิเตอร์ว่า AI ตรวจสอบคนแม่นไหม)
+4. การจัดการคลังอุปกรณ์เชิงลึก (Garage Management)
+Web Dashboard: มีระบบ Delete Camera (ลบกล้องออกจากคลัง)
+API ยังขาด:
+DELETE /api/v1/garage/[id]: ลบกล้องออกจากระบบ และต้องจัดการตัดการเชื่อมต่อจากอีเวนต์ที่ค้างอยู่ด้วย (Cleanup Logic)
+5. ระบบอัปโหลดรูปภาพด้วยมือ (Manual Upload / VIP Lane)
+Web Dashboard: รองรับการ Drag & Drop ไฟล์รูปภาพขึ้นระบบโดยตรง (ไม่ผ่าน FTP)
+API ยังขาด:
+POST /api/v1/events/[id]/upload: ส่งไฟล์รูปภาพจาก Library ในมือถือขึ้นระบบโดยตรง (กรณีตากล้องแต่งรูปเสร็จในมือถือแล้วอยากอัปโหลดเข้า Gallery ทันที)
+
+
+src/app/api/v1/
+├── auth/
+│   └── login/
+│       └── route.ts            # POST: เข้าสู่ระบบ
+├── wallet/
+│   ├── balance/
+│   │   └── route.ts            # GET: ดึงยอดเงินคงเหลือ
+│   ├── topup/
+│   │   └── route.ts            # POST: เติมเงิน (Omise)
+│   └── history/
+│       └── route.ts            # GET: ประวัติธุรกรรม
+├── ai/
+│   └── models/
+│       └── route.ts            # GET: รายการ AI Models และราคา
+├── garage/
+│   ├── route.ts                # GET: รายการกล้องทั้งหมดในคลัง
+│   ├── create/
+│   │   └── route.ts            # POST: ลงทะเบียนกล้องใหม่ (Gen FTP)
+│   └── [id]/
+│       ├── route.ts            # DELETE: ลบกล้องออกจากคลัง
+│       └── ftp/
+│           └── route.ts        # GET: ดึง User/Pass FTP ประจำกล้อง
+└── events/
+    ├── create/
+    │   └── route.ts            # POST: สร้างอีเวนต์ใหม่ (หัก 100 THB)
+    └── [id]/
+        ├── check-in/
+        │   └── route.ts        # POST: เสียบกล้องเข้า Slot งาน
+        ├── add-slot/
+        │   └── route.ts        # POST: ซื้อ Slot เพิ่ม (หัก 50 THB)
+        ├── extend-storage/
+        │   └── route.ts        # POST: ต่ออายุวันเก็บรูป (หัก 50 THB)
+        ├── qr/
+        │   └── route.ts        # GET: ดึง QR Code สำหรับเข้า Gallery
+        ├── health/
+        │   └── route.ts        # GET: มอนิเตอร์รูปทั้งหมดและสถานะกล้อง
+        ├── errors/
+        │   └── route.ts        # GET: รายการรูปที่ AI ประมวลผลพลาด
+        ├── upload/
+        │   └── route.ts        # POST: อัปโหลดรูปด้วยมือ (VIP Lane)
+        ├── members/
+        │   ├── route.ts        # GET: รายชื่อสมาชิกในงาน
+        │   └── [userId]/
+        │       └── route.ts    # DELETE: เตะสมาชิกออกจากงาน
+        ├── cameras/
+        │   └── [cameraId]/
+        │       └── route.ts    # PATCH: ปรับ AI รายกล้อง หรือ Disconnect
+        ├── faces/
+        │   ├── route.ts        # GET: รายการกลุ่มใบหน้าที่ AI ตรวจพบ
+        │   └── [clusterId]/
+        │       └── route.ts    # GET: รูปภาพทั้งหมดของใบหน้านั้นๆ
+        └── watermark/
+            ├── route.ts        # GET: ดึงค่า Config ลายน้ำปัจจุบัน
+            ├── upload/
+            │   └── route.ts    # POST: อัปโหลดไฟล์ PNG ลายน้ำใหม่
+            └── settings/
+                └── route.ts    # PATCH: ปรับ Opacity, Size, Position, Enable
+
