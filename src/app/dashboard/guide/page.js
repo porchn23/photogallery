@@ -591,14 +591,6 @@ export default function GuidePage() {
               </div>
             </div>
 
-            {/* Price Table - 4 Cards Grid */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-4 px-2">
-                <div className="w-1.5 h-6 bg-zinc-900 dark:bg-white rounded-full" />
-                <h4 className="text-sm font-black uppercase tracking-[0.2em] text-zinc-400">Service Fees & Pricing</h4>
-              </div>
-
-            </div>
           </div>
         )}
 
