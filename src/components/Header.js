@@ -1,4 +1,4 @@
-import { QrCode, Wallet, LogOut, User, HelpCircle, Plus } from 'lucide-react';
+import { QrCode, Wallet, LogOut, User, BookOpen, HelpCircle, Plus } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '@/src/lib/supabase';
@@ -108,7 +108,7 @@ export default function Header({ onQRClick, balance, user, isQROpen }) {
   className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 rounded-lg transition-all"
   title="คู่มือการใช้งาน"
 >
-  <HelpCircle size={16} />
+<BookOpen size={16} />
 </Link>                <button 
                   onClick={handleLogout}
                   className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-all"

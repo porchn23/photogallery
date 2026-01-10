@@ -8,7 +8,7 @@ import {
   Settings, HelpCircle, BookOpen, ChevronRight,
   Monitor, Smartphone, Info, CreditCard, Copy, Check,
   Plus, Calendar, Layers, Clock, Crown, Image as ImageIcon,
-  Sliders, ArrowRight, Wallet, QrCode, Hourglass, Users, Sparkles, Lock
+  Sliders, ArrowRight, Wallet, QrCode, Hourglass, Users, Sparkles, Lock, CheckCircle2, Circle
 } from 'lucide-react';
 
 export default function GuidePage() {
@@ -151,110 +151,216 @@ export default function GuidePage() {
           </div>
         )}
 
-        {activeTab === 'manage-event' && (
-          <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+
+{activeTab === 'manage-event' && (
+          <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Header */}
             <div className="text-center md:text-left space-y-3">
-              <h3 className="text-3xl font-black tracking-tighter">Event Management</h3>
-              <p className="text-zinc-500 font-medium italic">"ปรับแต่งและควบคุมทุกอย่างในอีเวนต์ของคุณ"</p>
+              <h3 className="text-3xl font-black tracking-tighter uppercase">Event Management Simulation</h3>
+              <p className="text-zinc-500 font-medium italic">"อธิบายส่วนการทำงานหลัก เรียงลำดับจากบนลงล่าง"</p>
             </div>
 
-            {/* ส่วนที่ 1: สิ่งที่ได้รับทันที (Starter Package ฿100) */}
-            <div className="space-y-8">
-              <div className="flex items-center gap-4">
-                <div className="w-2 h-8 bg-blue-500 rounded-full" />
-                <div>
-                  <h4 className="text-xl font-black uppercase tracking-widest text-zinc-900 dark:text-zinc-100">Starter Pack</h4>
-                  <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mt-0.5">สิ่งที่ได้รับทันทีเมื่อเปิดอีเวนต์</p>
+            {/* Simulated UI Container */}
+            <div className="relative bg-white dark:bg-zinc-950 rounded-[3rem] border border-zinc-200 dark:border-zinc-800 shadow-2xl overflow-hidden group/sim transition-all duration-500 hover:shadow-blue-500/10">
+              {/* Browser Header Decorator */}
+              <div className="h-12 bg-zinc-100/50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800 flex items-center px-6 gap-2">
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-red-400/80" />
+                  <div className="w-3 h-3 rounded-full bg-amber-400/80" />
+                  <div className="w-3 h-3 rounded-full bg-green-400/80" />
+                </div>
+                <div className="ml-6 flex-1 h-7 bg-white dark:bg-zinc-800/50 rounded-xl border border-zinc-200/50 dark:border-zinc-700/50 flex items-center px-4">
+                   <span className="text-[10px] text-zinc-400 font-mono tracking-tight">https://www.rooplife.com/dashboard/event</span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  {
-                    title: "AI Face Recognition",
-                    desc: "ระบบค้นหาใบหน้าอัจฉริยะ ลูกค้าหารูปตัวเองเจอใน 1 วินาที พร้อมใช้งานทันทีที่เปิดงาน",
-                    icon: <Users size={24} className="text-blue-500" />
-                  },
-                  {
-                    title: "1 Camera Slot",
-                    desc: "สิทธิ์การเชื่อมต่อกล้อง 1 ตัว สำหรับส่งรูปภาพผ่าน FTP เข้าสู่ระบบ (สามารถเปลี่ยนสลับกล้องได้)",
-                    icon: <Camera size={24} className="text-blue-500" />
-                  },
-                  {
-                    title: "2 Days Cloud Storage",
-                    desc: "พื้นที่เก็บรูปภาพบนระบบ Cloud นาน 2 วัน นับจากเวลาเริ่มต้นอีเวนต์ (นับเวลาหลังจบงาน)",
-                    icon: <Hourglass size={24} className="text-blue-500" />
-                  },
-                  {
-                    title: "Watermark Branding",
-                    desc: "ระบบประทับลายน้ำอัตโนมัติบนรูปภาพทุกลูกค้าที่ดาวน์โหลด (รองรับไฟล์ .png โปร่งใส)",
-                    icon: <ImageIcon size={24} className="text-blue-500" />
-                  }
-                ].map((item, i) => (
-                  <div key={i} className="p-6 bg-blue-50/30 dark:bg-blue-900/5 border border-blue-100/50 dark:border-blue-800/20 rounded-[2rem] flex items-start gap-5 hover:bg-white dark:hover:bg-zinc-900 transition-colors shadow-sm">
-                    <div className="p-4 bg-white dark:bg-zinc-800 rounded-2xl shadow-sm shrink-0 border border-zinc-100 dark:border-zinc-800">{item.icon}</div>
-                    <div className="space-y-1.5 pt-1">
-                      <h5 className="font-black text-zinc-900 dark:text-zinc-100 italic">{item.title}</h5>
-                      <p className="text-xs text-zinc-500 leading-relaxed font-medium italic opacity-80">{item.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+              {/* Simulated UI Content (เพิ่มจุดที่ 7) */}
+              <div className="p-6 md:p-10 space-y-10 pointer-events-none select-none">
+                {/* 1. Simulated Event Header (Hotspots 1, 2) */}
+                <div className="flex flex-col md:flex-row justify-between gap-8 pb-10 border-b border-zinc-100 dark:border-zinc-800 relative">
+                   <div className="absolute -top-2 -left-2 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-black text-xs animate-bounce shadow-xl z-50">1</div>
+                   <div className="space-y-5">
+                      <div className="flex items-center gap-3">
+                         <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 text-green-500 rounded-full border border-green-500/20">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                            <span className="text-[10px] font-black uppercase tracking-widest">Active Now</span>
+                         </div>
+                         <div className="flex items-center gap-1.5 text-zinc-400">
+                            <ImageIcon size={14} />
+                            <span className="text-[10px] font-bold uppercase tracking-widest">1,280 Photos</span>
+                         </div>
+                      </div>
+                      <h2 className="text-4xl font-black italic tracking-tighter text-zinc-900 dark:text-white leading-none">The Grand Wedding 2026</h2>
+                      <div className="flex flex-wrap items-center gap-6">
+                         <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Join Code:</span>
+                            <span className="text-xl font-black text-blue-600 dark:text-blue-400 tracking-[0.2em]">RLX-99</span>
+                         </div>
+                         <div className="h-4 w-[1px] bg-zinc-200 dark:bg-zinc-800" />
+                         <div className="flex items-center gap-2 text-zinc-500">
+                            <Calendar size={16} />
+                            <span className="text-xs font-bold italic">14 มกราคม 2026</span>
+                         </div>
+                      </div>
+                   </div>
+                   <div className="relative">
+                      <div className="absolute -top-3 -right-3 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-black text-xs animate-bounce shadow-xl z-50">2</div>
+                      <div className="px-8 py-4 bg-zinc-950 dark:bg-zinc-100 text-white dark:text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3 shadow-2xl">
+                         <Zap size={16} fill="currentColor" /> Public Gallery
+                      </div>
+                   </div>
+                </div>
 
-            {/* ส่วนที่ 2: บริการเพิ่มเติม (Add-on Services) */}
-            <div className="space-y-8">
-              <div className="flex items-center gap-4">
-                <div className="w-2 h-8 bg-purple-500 rounded-full" />
-                <div>
-                  <h4 className="text-xl font-black uppercase tracking-widest text-zinc-900 dark:text-zinc-100">Professional Add-ons</h4>
-                  <p className="text-[10px] font-bold text-purple-500 uppercase tracking-widest mt-0.5">ขยายขีดความสามารถให้งานของคุณ</p>
+                {/* 2. Simulated Camera Grid (Hotspots 3, 4, 5) */}
+                <div className="space-y-6 relative">
+                   <div className="flex items-center gap-2">
+                      <Camera size={18} className="text-blue-500" />
+                      <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Camera Slots (1/2)</h4>
+                   </div>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="p-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] shadow-sm space-y-6 relative">
+                         <div className="absolute top-0 -left-2 w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center font-black text-xs animate-bounce shadow-xl z-50">3</div>
+                         <div className="flex justify-between items-start">
+                            <div className="w-12 h-12 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-zinc-400">
+                               <Camera size={24} />
+                            </div>
+                            <div className="relative">
+                              <div className="absolute -top-3 -right-3 w-8 h-8 bg-pink-600 text-white rounded-full flex items-center justify-center font-black text-xs animate-bounce shadow-xl z-50">4</div>
+                              <div className="flex items-center gap-2 px-4 py-2 bg-pink-500 text-white rounded-full shadow-lg shadow-pink-500/20">
+                                  <Sparkles size={12} fill="currentColor" className="animate-pulse" />
+                                  <span className="text-[9px] font-black uppercase tracking-widest">AI BEAUTY ON</span>
+                              </div>
+                            </div>
+                         </div>
+                         <div className="space-y-1.5">
+                            <h5 className="text-xl font-black italic tracking-tight">Main Camera 01</h5>
+                            <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest leading-none">Sony A7R IV • Soft Portrait Style</p>
+                         </div>
+                      </div>
+                      <div className="relative border-2 border-dashed border-blue-200 dark:border-blue-500/20 rounded-[2.5rem] bg-blue-50/20 dark:bg-blue-900/5 flex flex-col items-center justify-center gap-3 p-8">
+                         <div className="absolute -top-3 -right-3 w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-black text-xs animate-bounce shadow-xl z-50">5</div>
+                         <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600">
+                            <Plus size={20} strokeWidth={3} />
+                         </div>
+                         <div className="text-center">
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 block">Buy Extra Slot</span>
+                            <span className="text-sm font-black text-blue-400 tracking-tighter italic">฿59 Per Camera</span>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+
+                {/* 3. Simulated Watermark Section (Hotspot 6) */}
+                <div className="space-y-6 relative">
+                   <div className="absolute -top-3 -left-3 w-8 h-8 bg-amber-600 text-white rounded-full flex items-center justify-center font-black text-xs animate-bounce shadow-xl z-50">6</div>
+                   <div className="flex items-center gap-2">
+                      <ImageIcon size={18} className="text-amber-500" />
+                      <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Watermark Engine</h4>
+                   </div>
+                   <div className="bg-zinc-950 rounded-[2.5rem] overflow-hidden border border-zinc-800 shadow-2xl">
+                      <div className="aspect-[21/9] w-full relative group/wm">
+                         <img src="/Assets/Gemini_Generated_Image_c0crvc0crvc0crvc.png" className="w-full h-full object-cover opacity-40 brightness-75" />
+                         <div className="absolute inset-4 pointer-events-none">
+                            <div className="absolute top-0 left-0 w-10 h-10 rounded-full border border-white/10 bg-black/20 flex items-center justify-center"><Circle size={4} className="text-white/30" /></div>
+                            <div className="absolute top-0 right-0 w-10 h-10 rounded-full border border-white/10 bg-black/20 flex items-center justify-center"><Circle size={4} className="text-white/30" /></div>
+                            <div className="absolute bottom-0 left-0 w-10 h-10 rounded-full border border-white/10 bg-black/20 flex items-center justify-center"><Circle size={4} className="text-white/30" /></div>
+                            <div className="absolute bottom-0 right-0 w-12 h-12 border-2 border-blue-500 bg-blue-500/20 backdrop-blur-md rounded-xl flex items-center justify-center shadow-2xl scale-110">
+                               <div className="text-[8px] font-black text-white text-center leading-none uppercase">Logo<br/>Active</div>
+                            </div>
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full border border-white/10 bg-black/20 flex items-center justify-center"><Circle size={4} className="text-white/30" /></div>
+                         </div>
+                      </div>
+                      <div className="p-6 bg-zinc-900 flex flex-wrap gap-8 items-center justify-center border-t border-zinc-800 text-white/50 text-[10px] uppercase tracking-widest font-black">
+                         <CheckCircle2 size={12} className="text-blue-500" /> Watermark Enabled
+                      </div>
+                   </div>
+                </div>
+
+                {/* ✅ 4. Simulated Storage Section (Hotspot 7) */}
+                <div className="space-y-6 relative">
+                   <div className="absolute -top-3 -right-3 w-8 h-8 bg-zinc-900 text-white rounded-full flex items-center justify-center font-black text-xs animate-bounce shadow-xl z-50">7</div>
+                   <div className="flex items-center gap-2">
+                      <ShieldAlert size={18} className="text-zinc-500" />
+                      <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Storage Control</h4>
+                   </div>
+                   <div className="bg-zinc-950 rounded-[2.5rem] p-8 border border-zinc-800 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-8">
+                      <div className="flex-1 space-y-4 w-full">
+                         <div className="flex justify-between items-end">
+                            <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest leading-none">Days Remaining</span>
+                            <span className="text-3xl font-black text-white italic tracking-tighter">2 Days</span>
+                         </div>
+                         <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-blue-600 w-2/3" />
+                         </div>
+                      </div>
+                      <div className="px-8 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black text-white uppercase tracking-widest shadow-inner">
+                         Extend Storage
+                      </div>
+                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[
-                  {
-                    title: "Extra Slot",
-                    desc: "เพิ่มจำนวนช่างภาพในทีม",
-                    price: "฿59",
-                    unit: "ต่อกล้อง",
-                    icon: <Plus size={28} />,
-                    color: "text-purple-500",
-                    bg: "bg-purple-50 dark:bg-purple-900/20"
-                  },
-                  {
-                    title: "Extend Storage",
-                    desc: "ขยายเวลาการเก็บรูปภาพ",
-                    price: "฿49",
-                    unit: "ต่อ 1 วัน",
-                    icon: <Clock size={28} />,
-                    color: "text-amber-500",
-                    bg: "bg-amber-50 dark:bg-amber-900/20"
-                  },
-                  {
-                    title: "AI Beauty",
-                    desc: "ปรับผิวเนียนอัจฉริยะ",
-                    price: "฿0.9-1.2",
-                    unit: "ต่อรูป",
-                    icon: <Sparkles size={28} />,
-                    color: "text-pink-500",
-                    bg: "bg-pink-50 dark:bg-pink-900/20"
-                  }
-                ].map((item, i) => (
-                  <div key={i} className="group p-10 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[3rem] shadow-sm hover:shadow-2xl hover:border-blue-500/30 transition-all duration-500 text-center relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-blue-500/5 to-transparent rounded-bl-full" />
-                    <div className={`w-16 h-16 ${item.bg} ${item.color} rounded-3xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500`}>
-                      {item.icon}
+              {/* ✅ Legend Summary: รูปแบบรายการแนวตั้ง (ต่อแถว) เพื่อรองรับคำอธิบายที่ยาวขึ้น */}
+              <div className="p-8 md:p-12 bg-zinc-100/50 dark:bg-zinc-900/50 border-t border-zinc-200 dark:border-zinc-800 flex flex-col gap-10">
+                 {[
+                    {
+                      num: "1",
+                      color: "bg-blue-600",
+                      title: "Project Hub & Stats",
+                      desc: "ศูนย์กลางควบคุมข้อมูลอีเวนต์ ประกอบด้วยชื่อโปรเจกต์ วันที่จัดงาน และ Join Code 6 หลักสำหรับให้ช่างภาพร่วมทีมใช้เข้าร่วมงาน คุณสามารถตรวจสอบจำนวนรูปภาพทั้งหมดที่ส่งเข้าสู่ระบบได้แบบ Real-time จากส่วนนี้ คุณสามารถแก้ไข ข้อมูลต่างๆของ event ได้ก่อนที่ event จะเริ่ม"
+                    },
+                    {
+                      num: "2",
+                      color: "bg-blue-600",
+                      title: "Public Gallery Link",
+                      desc: "ปุ่มทางเข้าสู่หน้าแกลเลอรีหลักสำหรับลูกค้าซึ่งประกอบด้วยระบบ การค้นหาใบหน้า Ai-Beauty การดาวน์โหลดรูป QR Code ให้กับลูกค้าในงาน สามารถเปิดดูได้จาก Smart phone ได้ด้วยตัวเอง"
+                    },
+                    {
+                      num: "3",
+                      color: "bg-purple-600",
+                      title: "Camera Slot Status",
+                      desc: "ส่วนจัดการอุปกรณ์กล้องที่กำลังเชื่อมต่อ (Check-in) อยู่ในงานนี้ แสดงข้อมูลรุ่นของกล้อง และชื่อของช่างภาพที่ถือกล้องตัวนั้นอยู่ เพื่อให้คุณทราบสถานะการทำงานของทีมงานแต่ละคนได้อย่างชัดเจน"
+                    },
+                    {
+                      num: "4",
+                      color: "bg-pink-600",
+                      title: "AI Beauty Engine",
+                      desc: "สวิตช์ควบคุมการทำงานของ AI ปรับผิวเนียนอัจฉริยะ เมื่อเปิดใช้งาน รูปถ่ายที่ส่งมาจากกล้องตัวนั้นจะถูกประมวลผลผ่าน AI ทันที เพื่อให้ได้รูปภาพที่สวยงามและพร้อมสำหรับดาวน์โหลดในเวลาเพียงไม่กี่วินาที สามารถเปิด/ปิด การทำงานได้ตลอดเวลา"
+                    },
+                    {
+                      num: "5",
+                      color: "bg-blue-500",
+                      title: "Extra Camera Slots",
+                      desc: "ปุ่มสำหรับขยายขีดความสามารถของงาน (Add-on) ในกรณีที่คุณมีทีมช่างภาพมากกว่าจำนวน Slot เริ่มต้น คุณสามารถซื้อ Slot เพิ่มเติมได้จากจุดนี้ เพื่อให้รองรับการเชื่อมต่อกล้องพร้อมกันได้หลายตัวในงานเดียว"
+                    },
+                    {
+                      num: "6",
+                      color: "bg-amber-600",
+                      title: "Watermark Branding",
+                      desc: "เครื่องมือปรับแต่งเอกลักษณ์ของภาพ (Branding) คุณสามารถอัปโหลดไฟล์โลโก้ .PNG เลือกตำแหน่งการวาง (มุมต่างๆ หรือตรงกลาง) ปรับขนาด และค่าความโปร่งแสงได้แบบอิสระ เพื่อให้รูปภาพทุกลูกค้าที่ดาวน์โหลดติดลายน้ำแบรนด์ของคุณ"
+                    },
+                    {
+                      num: "7",
+                      color: "bg-zinc-900",
+                      title: "Storage Control",
+                      desc: "ระบบบริหารจัดการพื้นที่จัดเก็บและระยะเวลาการแสดงผล คุณสามารถตรวจสอบจำนวนวันที่เหลืออยู่ก่อนที่งานจะหมดอายุ และสามารถกดขยายเวลา (Extend) เพื่อยืดระยะเวลาการเก็บรูปภาพบน Cloud ของเราได้ตามต้องการ เพื่อให้ลูกค้าเข้าถึงรูปภาพได้ยาวนานขึ้น"
+                    }
+                 ].map((item, i) => (
+                    <div key={i} className="flex gap-8 group">
+                       <div className={`w-10 h-10 ${item.color} text-white rounded-2xl flex items-center justify-center text-lg font-black shadow-lg shrink-0 group-hover:scale-110 transition-transform`}>
+                          {item.num}
+                       </div>
+                       <div className="space-y-2">
+                          <h6 className="font-black text-base uppercase tracking-widest text-zinc-900 dark:text-white italic">
+                            {item.title}
+                          </h6>
+                          <p className="text-[13px] text-zinc-500 leading-relaxed font-medium italic opacity-90">
+                            {item.desc}
+                          </p>
+                       </div>
                     </div>
-                    <h5 className="text-xl font-black mb-2 italic tracking-tight">{item.title}</h5>
-                    <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mb-6 px-4">{item.desc}</p>
-                    <div className={`text-3xl font-black ${item.color} tracking-tighter`}>
-                      {item.price} <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest ml-1">{item.unit}</span>
-                    </div>
-                  </div>
-                ))}
+                 ))}
               </div>
             </div>
           </div>
@@ -333,35 +439,106 @@ export default function GuidePage() {
           </div>
         )}
 
-        {/* Tab Content: Team & Joining */}
+        {/* Tab Content: Team & Joining - Concept 2: The Central Station */}
         {activeTab === 'team-join' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="text-center md:text-left space-y-2">
-              <h3 className="text-3xl font-black tracking-tighter">Collaborative Workflow</h3>
-              <p className="text-zinc-500 font-medium italic">"ช่างภาพหลายคน งานเดียว คลังรูปเดียว"</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="p-8 bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                 <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center text-blue-600 mb-6"><Crown size={24} /></div>
-                 <h4 className="text-xl font-black mb-3 italic">สำหรับเจ้าของงาน (Owner)</h4>
-                 <ul className="space-y-4 text-sm font-medium text-zinc-500">
-                   <li className="flex gap-3"><ChevronRight className="shrink-0 text-blue-500" size={18} /> <span>ในหน้าแดชบอร์ด คุณจะเห็น Join Code 6 หลัก</span></li>
-                   <li className="flex gap-3"><ChevronRight className="shrink-0 text-blue-500" size={18} /> <span>ส่งรหัสนี้ให้เพื่อนร่วมทีมที่ต้องการให้ช่วยถ่ายงาน</span></li>
-                   <li className="flex gap-3"><ChevronRight className="shrink-0 text-blue-500" size={18} /> <span>คุณเป็นคนเดียวที่มีสิทธิ์จัดการลายน้ำ และลบรูปภาพ</span></li>
-                 </ul>
-              </div>
-              <div className="p-8 bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                 <div className="w-12 h-12 bg-purple-50 dark:bg-purple-900/20 rounded-xl flex items-center justify-center text-purple-600 mb-6"><Users size={24} /></div>
-                 <h4 className="text-xl font-black mb-3 italic">สำหรับผู้ร่วมงาน (Joiner)</h4>
-                 <ul className="space-y-4 text-sm font-medium text-zinc-500">
-                   <li className="flex gap-3"><ChevronRight className="shrink-0 text-purple-500" size={18} /> <span>กดปุ่ม "Join Event" ในหน้าแดชบอร์ดหลัก</span></li>
-                   <li className="flex gap-3"><ChevronRight className="shrink-0 text-purple-500" size={18} /> <span>กรอกรหัส 6 หลักที่ได้รับจากเจ้าของงาน</span></li>
-                   <li className="flex gap-3"><ChevronRight className="shrink-0 text-purple-500" size={18} /> <span>เมื่องานปรากฏ ให้กด "Add Camera" เพื่อเลือกกล้องเข้างาน</span></li>
-                 </ul>
-              </div>
-            </div>
+  <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    
+    {/* 1. Header: The Philosophy */}
+    <div className="text-center space-y-4 max-w-2xl mx-auto">
+      <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">
+        Join Code Protocol
+      </div>
+      <h3 className="text-4xl font-black tracking-tighter uppercase italic text-zinc-900 dark:text-white leading-none">
+        หนึ่งโปรเจกต์ <span className="text-blue-600">ร้อยตากล้อง</span> <br/>
+        จบที่แกลเลอรีเดียว
+      </h3>
+      <p className="text-zinc-500 font-medium italic text-sm">
+        "ไม่ต้องแยกส่งลิงก์ให้ลูกค้าหลายที่ แค่ใช้ Join Code รูปจากทุกคนจะไหลมารวมกันทันที"
+      </p>
+    </div>
+
+    {/* 2. The 3-Step Journey */}
+    <div className="relative grid grid-cols-1 md:grid-cols-3 gap-12 max-w-5xl mx-auto px-4">
+      {/* Step 1: The Owner */}
+      <div className="relative group">
+        <div className="absolute -top-6 -left-6 text-8xl font-black text-zinc-100 dark:text-zinc-900/50 -z-10 group-hover:text-blue-500/10 transition-colors">01</div>
+        <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-100 dark:border-zinc-800 shadow-xl space-y-6 relative overflow-hidden h-full">
+          <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+            <Plus size={28} strokeWidth={2.5} />
           </div>
-        )}
+          <div className="space-y-2">
+            <h4 className="text-xl font-black italic">สร้าง Event</h4>
+            <p className="text-xs text-zinc-500 font-medium leading-relaxed uppercase tracking-wider">
+              เมื่อสร้าง Event เสร็จ คุณจะได้รับ <span className="text-blue-600 font-bold italic">Join Code 6 หลัก</span> เพื่อส่งให้เพื่อนตากล้องในทีม
+            </p>
+          </div>
+          <div className="pt-4 border-t border-zinc-50 dark:border-zinc-800 flex items-center justify-between">
+            <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest italic">Action: Event Owner</span>
+            <ArrowRight size={16} className="text-zinc-300 md:rotate-0 rotate-90" />
+          </div>
+        </div>
+      </div>
+
+      {/* Step 2: The Friend */}
+      <div className="relative group">
+        <div className="absolute -top-6 -left-6 text-8xl font-black text-zinc-100 dark:text-zinc-900/50 -z-10 group-hover:text-purple-500/10 transition-colors">02</div>
+        <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] border border-zinc-100 dark:border-zinc-800 shadow-xl space-y-6 relative overflow-hidden h-full">
+          <div className="w-14 h-14 bg-purple-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/20">
+            <QrCode size={28} />
+          </div>
+          <div className="space-y-2">
+            <h4 className="text-xl font-black italic">เพื่อนกด Join</h4>
+            <p className="text-xs text-zinc-500 font-medium leading-relaxed uppercase tracking-wider">
+              เพื่อนตากล้องเลือกเมนู <span className="text-purple-600 font-bold italic">"Join Code"</span> ในหน้า Dashboard แล้วกรอกรหัส 6 หลักที่ได้รับ
+            </p>
+          </div>
+          <div className="pt-4 border-t border-zinc-50 dark:border-zinc-800 flex items-center justify-between">
+            <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest italic">Action: Team Members</span>
+            <ArrowRight size={16} className="text-zinc-300 md:rotate-0 rotate-90" />
+          </div>
+        </div>
+      </div>
+
+      {/* Step 3: Collaboration */}
+      <div className="relative group">
+        <div className="absolute -top-6 -left-6 text-8xl font-black text-zinc-100 dark:text-zinc-900/50 -z-10 group-hover:text-green-500/10 transition-colors">03</div>
+        <div className="bg-zinc-950 text-white p-8 rounded-[2.5rem] shadow-2xl space-y-6 relative overflow-hidden h-full">
+          <div className="w-14 h-14 bg-green-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-green-500/20">
+            <Camera size={28} />
+          </div>
+          <div className="space-y-2">
+            <h4 className="text-xl font-black italic">เพิ่มกล้องเข้างาน</h4>
+            <p className="text-xs text-zinc-400 font-medium leading-relaxed uppercase tracking-wider">
+              เพื่อนจะเห็น Event ของ Owner ทันที จากนั้นแค่ <span className="text-green-500 font-bold italic">เพิ่มกล้องตัวเอง</span> เพื่อเริ่มส่งรูปเข้าแกลเลอรีหลัก
+            </p>
+          </div>
+          <div className="pt-4 border-t border-white/5 flex items-center justify-between">
+            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest italic">Result: Shared Gallery</span>
+            <CheckCircle2 size={16} className="text-green-500" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* 3. Outcome Summary */}
+    <div className="max-w-4xl mx-auto bg-blue-50 dark:bg-blue-900/10 rounded-[3rem] p-10 border border-blue-100 dark:border-blue-900/20 flex flex-col md:flex-row items-center gap-10">
+      <div className="flex-1 space-y-4 text-center md:text-left">
+         <h5 className="text-2xl font-black italic tracking-tight italic">แกลเลอรีเดียว.. ที่รวบรวมทุกความทรงจำ</h5>
+         <p className="text-sm text-zinc-500 font-medium italic leading-relaxed">
+           ไม่ว่าช่างภาพจะมาช่วยงานกี่คน หรือใช้กล้องกี่ตัว ลูกค้าไม่จำเป็นต้องสแกนหลายครั้ง เพียงเข้าลิงก์เดียว ระบบ AI จะรวบรวมรูปภาพจากตากล้องทุกคนมาแสดงผลแบบ Real-time ทันที
+         </p>
+      </div>
+      <div className="flex -space-x-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="w-14 h-14 rounded-full border-4 border-white dark:border-zinc-950 bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center shadow-xl">
+             <Camera size={20} className={i === 1 ? "text-blue-500" : i === 2 ? "text-purple-500" : "text-green-500"} />
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+)}
+
 
         {/* Tab Content: Billing & Wallet (Full Redesign) */}
         {activeTab === 'billing' && (
@@ -421,51 +598,6 @@ export default function GuidePage() {
                 <h4 className="text-sm font-black uppercase tracking-[0.2em] text-zinc-400">Service Fees & Pricing</h4>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* 1. Create Event */}
-                <div className="p-8 bg-zinc-950 text-white rounded-[2.5rem] flex flex-col justify-between shadow-xl relative overflow-hidden group min-h-[220px]">
-                  <div className="relative z-10">
-                    <Crown className="text-blue-500 mb-6" size={32} />
-                    <h5 className="font-black text-xl mb-1 italic">สร้างอีเวนต์ใหม่</h5>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-6">Starter Job Package</p>
-                    <div className="text-4xl font-black text-blue-500 tracking-tighter">฿100.00 <span className="text-[10px] font-bold text-zinc-500">/ งาน</span></div>
-                  </div>
-                  <div className="absolute -right-6 -bottom-6 text-white/5 rotate-12 group-hover:scale-110 transition-transform"><Crown size={120} /></div>
-                </div>
-
-                {/* 2. Extend Storage */}
-                <div className="p-8 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[2.5rem] flex flex-col justify-between shadow-sm relative overflow-hidden group min-h-[220px]">
-                  <div className="relative z-10">
-                    <Hourglass className="text-amber-500 mb-6" size={32} />
-                    <h5 className="font-black text-xl mb-1 italic">ขยายเวลาเก็บรูป</h5>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-6">Extend Storage Period</p>
-                    <div className="text-4xl font-black text-amber-500 tracking-tighter">฿50.00 <span className="text-[10px] font-bold text-zinc-400">/ 1 วัน</span></div>
-                  </div>
-                  <div className="absolute -right-6 -bottom-6 text-zinc-100 dark:text-zinc-800 rotate-12 group-hover:scale-110 transition-transform"><Clock size={120} /></div>
-                </div>
-
-                {/* 3. AI Beauty */}
-                <div className="p-8 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[2.5rem] flex flex-col justify-between shadow-sm relative overflow-hidden group min-h-[220px]">
-                  <div className="relative z-10">
-                    <Zap className="text-blue-600 mb-6" size={32} />
-                    <h5 className="font-black text-xl mb-1 italic">AI Beauty</h5>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-6">Retouch Processing</p>
-                    <div className="text-4xl font-black text-blue-600 tracking-tighter">฿1.20 <span className="text-[10px] font-bold text-zinc-400">/ รูป</span></div>
-                  </div>
-                  <div className="absolute -right-6 -bottom-6 text-zinc-100 dark:text-zinc-800 rotate-12 group-hover:scale-110 transition-transform"><Zap size={120} /></div>
-                </div>
-
-                {/* 4. Extra Camera Slot */}
-                <div className="p-8 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[2.5rem] flex flex-col justify-between shadow-sm relative overflow-hidden group min-h-[220px]">
-                  <div className="relative z-10">
-                    <Plus className="text-purple-500 mb-6" size={32} />
-                    <h5 className="font-black text-xl mb-1 italic">เพิ่ม Camera Slot</h5>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-6">Extra Team Access</p>
-                    <div className="text-4xl font-black text-blue-600 tracking-tighter">฿50.00 <span className="text-[10px] font-bold text-zinc-400">/ กล้อง</span></div>
-                  </div>
-                  <div className="absolute -right-6 -bottom-6 text-zinc-100 dark:text-zinc-800 rotate-12 group-hover:scale-110 transition-transform"><Camera size={120} /></div>
-                </div>
-              </div>
             </div>
           </div>
         )}
