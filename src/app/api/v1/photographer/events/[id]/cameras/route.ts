@@ -1,3 +1,5 @@
+// src/app/api/v1/photographer/events/[id]/cameras/route.ts
+
 import { NextResponse } from 'next/server'
 import { createClient } from '@/src/lib/supabaseServer'
 
@@ -15,11 +17,13 @@ export async function GET(
 
     // 2. ดึงรายการกล้องที่ Active อยู่ในงานนี้
     // ดึงข้อมูลจากตาราง event_cameras join กับ cameras และ ai_models
+    // ✅ เพิ่ม user_id เข้าไปใน select list
     const { data, error } = await supabase
       .from('event_cameras')
       .select(`
         id,
         camera_id,
+        user_id,
         status,
         last_seen,
         ai_beauty_enabled,
