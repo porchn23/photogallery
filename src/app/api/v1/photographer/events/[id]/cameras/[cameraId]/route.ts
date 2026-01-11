@@ -67,3 +67,41 @@ export async function PATCH(
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
+
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string, cameraId: string }> }
+) {
+  try {
+    const supabase = await createClient()
+    const { id: eventId, cameraId } = await params
+    
+    // 1. ตรวจสอบสิทธิ์
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    // 2. ทำการเตะกล้องออกจากงาน (เปลี่ยนสถานะเป็น inactive)
+    const { error } = await supabase
+      .from('event_cameras')
+      .update({ 
+        status: 'inactive',
+        last_seen: new Date().toISOString() 
+      })
+      .eq('event_id', eventId)
+      .eq('camera_id', cameraId)
+      .eq('status', 'active') // เฉพาะตัวที่ยังเชื่อมต่ออยู่
+
+    if (error) throw error
+
+    return NextResponse.json({
+      success: true,
+      message: 'ลบกล้องออกจากอีเวนต์เรียบร้อยแล้ว Slot ว่างพร้อมใช้งาน'
+    })
+
+  } catch (error: any) {
+    console.error('API ERROR [Remove Camera from Event]:', error.message)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}
