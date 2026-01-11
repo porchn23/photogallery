@@ -9,33 +9,37 @@ export async function GET(
     const supabase = await createClient()
     const { id: eventId } = await params
     
-    // 1. Auth Check
+    // 1. ตรวจสอบสิทธิ์
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // 2. ดึงข้อมูลพร้อมกันเพื่อความรวดเร็ว
-    const [eventRes, photoCountRes, errorCountRes, activeCamerasRes] = await Promise.all([
-      supabase.from('events').select('title, storage_days, created_at, start_time').eq('id', eventId).single(),
-      supabase.from('photos').select('id', { count: 'exact', head: true }).eq('event_id', eventId),
-      supabase.from('processing_jobs').select('id', { count: 'exact', head: true }).eq('event_id', eventId).eq('status', 'error'),
-      supabase.from('event_cameras').select('id, camera_id, last_seen, cameras(nickname)').eq('event_id', eventId).eq('status', 'active')
+    // 2. ดึงสถิติต่างๆ แบบ Parallel
+    const [photosRes, errorsRes, activeCamsRes, peopleRes] = await Promise.all([
+      // นับจำนวนรูปทั้งหมด
+      supabase.from('photos').select('*', { count: 'exact', head: true }).eq('event_id', eventId),
+      
+      // นับจำนวน Error (AI Failed)
+      supabase.from('processing_jobs').select('*', { count: 'exact', head: true }).eq('event_id', eventId).eq('status', 'error'),
+      
+      // นับจำนวนกล้องที่กำลัง Active
+      supabase.from('event_cameras').select('*', { count: 'exact', head: true }).eq('event_id', eventId).eq('status', 'active'),
+
+      // ✅ นับจำนวนคน (Face Clusters) ที่ AI แยกแยะได้
+      supabase.from('face_clusters').select('*', { count: 'exact', head: true }).eq('event_id', eventId)
     ])
 
-    if (eventRes.error || !eventRes.data) return NextResponse.json({ error: 'ไม่พบงาน' }, { status: 404 })
-
-    // 3. สรุปผลลัพธ์
     return NextResponse.json({
       success: true,
-      event: eventRes.data,
-      stats: {
-        total_photos: photoCountRes.count || 0,
-        total_errors: errorCountRes.count || 0,
-        active_cameras: activeCamerasRes.data?.length || 0
-      },
-      cameras: activeCamerasRes.data || []
+      health: {
+        total_photos: photosRes.count || 0,
+        total_errors: errorsRes.count || 0,
+        active_cameras: activeCamsRes.count || 0,
+        total_people: peopleRes.count || 0 // ✅ จำนวนคน
+      }
     })
 
   } catch (error: any) {
+    console.error('API ERROR [Get Event Health]:', error.message)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
