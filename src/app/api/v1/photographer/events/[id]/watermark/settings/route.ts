@@ -53,3 +53,51 @@ export async function PATCH(
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
+
+// ... imports และ PATCH เดิม ...
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const supabase = await createClient()
+    const { id: eventId } = await params
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    // ดึงเฉพาะ setting ลายน้ำ
+    const { data, error } = await supabase
+      .from('events')
+      .select('watermark_enabled, watermark_opacity, watermark_size, watermark_position, watermark_path, watermark_version')
+      .eq('id', eventId)
+      .single()
+
+    if (error) throw error
+
+    // Generate URL ถ้ามี
+    let watermarkUrl = null
+    if (data.watermark_version) {
+       const bucket = process.env.NEXT_PUBLIC_DO_SPACES_BUCKET || 'face-grid-storage'
+       const endpoint = (process.env.NEXT_PUBLIC_DO_SPACES_ENDPOINT || 'sgp1.digitaloceanspaces.com').replace('https://', '')
+       const key = `face-grid-storage/${eventId}/watermark.png`
+       watermarkUrl = `https://${bucket}.${endpoint}/${key}?v=${data.watermark_version}`
+    }
+
+    return NextResponse.json({
+      success: true,
+      settings: {
+          enabled: data.watermark_enabled,
+          opacity: data.watermark_opacity,
+          size: data.watermark_size,
+          position: data.watermark_position,
+          url: watermarkUrl
+      }
+    })
+
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}
