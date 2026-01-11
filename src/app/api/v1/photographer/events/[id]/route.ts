@@ -53,3 +53,52 @@ export async function PATCH(
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
+
+// เพิ่มต่อจากโค้ดเดิมใน src/app/api/v1/photographer/events/[id]/route.ts
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const supabase = await createClient()
+    const { id: eventId } = await params
+    
+    // 1. Auth Check
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    // 2. ดึงข้อมูลงานแบบละเอียด
+    const { data, error } = await supabase
+      .from('events')
+      .select(`
+        *,
+        event_members (user_id)
+      `)
+      .eq('id', eventId)
+      .single()
+
+    if (error || !data) return NextResponse.json({ error: 'ไม่พบงานนี้' }, { status: 404 })
+
+    // 3. ตรวจสอบสิทธิ์ (ต้องเป็นเจ้าของหรือสมาชิก)
+    const isOwner = data.owner_id === user.id
+    const isMember = data.event_members.some((m: any) => m.user_id === user.id)
+
+    if (!isOwner && !isMember) {
+      return NextResponse.json({ error: 'คุณไม่มีสิทธิ์เข้าถึงงานนี้' }, { status: 403 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      event: {
+        ...data,
+        role: isOwner ? 'owner' : 'member',
+        event_members: undefined // ล้างออกเพื่อให้คลีน
+      }
+    })
+
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}
