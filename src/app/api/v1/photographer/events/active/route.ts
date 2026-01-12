@@ -17,7 +17,7 @@ export async function GET(request: Request) {
         .from('events')
         .select(`id, title, start_time, status, max_cameras, storage_days, join_code, created_at, watermark_enabled, owner_id`)
         .eq('owner_id', user.id)
-        .eq('status', 'active'),
+        .neq('status', 'archived'), // แก้ไข: ดึงทั้งหมดที่ไม่ใช่ archived เพื่อมาคำนวณ status เอง
 
       // 2. งานที่เข้าร่วม (ดึงผ่านตาราง event_members)
       supabase
@@ -28,26 +28,58 @@ export async function GET(request: Request) {
           )
         `)
         .eq('user_id', user.id)
-        .eq('events.status', 'active')
+        .neq('events.status', 'archived') // แก้ไข: เช่นกัน
     ])
 
     if (ownerRes.error) throw ownerRes.error
     if (memberRes.error) throw memberRes.error
 
-    // รวมข้อมูลและระบุ Role
-    const ownerEvents = (ownerRes.data || []).map(e => ({ ...e, role: 'owner' }))
+    // ฟังก์ชั่นคำนวณ Status
+    const calculateStatus = (event: any) => {
+        if (!event.start_time) return event.status; 
+        if (event.status === 'archived') return 'archived'; // ถ้าถูกลบ/เก็บถาวร ให้คงเดิม
+
+        const now = new Date().getTime();
+        const startTime = new Date(event.start_time).getTime();
+        const storageDays = event.storage_days || 0;
+        
+        // วันหมดอายุ = start_time + storage_days
+        const expireTime = new Date(event.start_time);
+        expireTime.setDate(expireTime.getDate() + storageDays);
+        const expireTimestamp = expireTime.getTime();
+
+        if (now < startTime) {
+            return 'pending'; // ยังไม่ถึงเวลางาน
+        } else if (now > expireTimestamp) {
+            return 'expired'; // หมดอายุแล้ว
+        } else {
+            return 'active'; // กำลังดำเนินงาน
+        }
+    };
+
+    // รวมข้อมูลและระบุ Role + Recalculate Status
+    const ownerEvents = (ownerRes.data || []).map(e => ({ 
+        ...e, 
+        role: 'owner',
+        status: calculateStatus(e) // Override status
+    }))
     
-    // กรองเอาเฉพาะข้อมูล event ที่ไม่เป็น null (กรณี join ไม่เจอหรือสถานะไม่ใช่ active)
+    // กรองและ Map Member Events
     const joinedEvents = (memberRes.data || [])
       .filter(m => m.events !== null)
-      .map(m => ({ ...(m.events as any), role: 'member' }))
+      .map(m => {
+          const eventData = m.events as any;
+          return { 
+              ...eventData, 
+              role: 'member',
+              status: calculateStatus(eventData) // Override status
+          };
+      })
 
-    // รวมร่างและกำจัดตัวซ้ำ (เผื่อเจ้าของไปอยู่ใน member ด้วย)
+    // รวมร่างและกำจัดตัวซ้ำ (Deduplicate)
     const allEventsMap = new Map()
     
-    // ใส่ member ก่อน
     joinedEvents.forEach(e => allEventsMap.set(e.id, e))
-    // ใส่ owner ทับ (ถ้าซ้ำ owner จะชนะและได้ role: 'owner')
     ownerEvents.forEach(e => allEventsMap.set(e.id, e))
 
     const finalEvents = Array.from(allEventsMap.values())
