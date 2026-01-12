@@ -44,7 +44,27 @@ export async function proxy(request: NextRequest) {
   )
 
   // 4. ตรวจสอบ User
-  const { data: { user } } = await supabase.auth.getUser()
+      // ✅ เพิ่ม Logic เช็ค Status และ Reactivate
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (user) {
+        const { data: dbUser } = await supabase
+          .from('users')
+          .select('status')
+          .eq('id', user.id)
+          .single()
+
+        // ถ้า User เคยลบบัญชีไปแล้ว (status = deleted) ให้ Reactivate กลับมาเป็น active
+        if (dbUser?.status === 'deleted') {
+            await supabase
+              .from('users')
+              .update({ status: 'active' }) // กลับมาใช้งานได้
+              .eq('id', user.id)
+            
+            console.log(`User ${user.id} has been reactivated.`)
+        }
+      }
+
   console.log(`--- DEBUG PROXY --- Path: ${pathname} | User: ${user ? 'Found' : 'Not Found'}`)
 
   // 5. Logic การเข้าถึง (Authorization Logic)
