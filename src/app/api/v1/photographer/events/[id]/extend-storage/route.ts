@@ -51,7 +51,10 @@ export async function POST(
     const newStorageDays = (eventRes.data.storage_days || 3) + 1
     const { data: updatedEvent, error: updateEventError } = await supabase
       .from('events')
-      .update({ storage_days: newStorageDays })
+      .update({ 
+        storage_days: newStorageDays,
+        status: 'active' // ✅ บังคับเปลี่ยนสถานะเป็น Active ทันทีที่ต่ออายุ
+      })
       .eq('id', eventId)
       .select()
       .single()
