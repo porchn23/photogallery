@@ -82,8 +82,25 @@ export async function GET(request: Request) {
     joinedEvents.forEach(e => allEventsMap.set(e.id, e))
     ownerEvents.forEach(e => allEventsMap.set(e.id, e))
 
+    const statusPriority: Record<string, number> = {
+      'active': 1,
+      'pending': 2,
+      'expired': 3
+    };
+
     const finalEvents = Array.from(allEventsMap.values())
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .sort((a, b) => {
+          // 1. เรียงตาม Status ก่อน
+          const priorityA = statusPriority[a.status] || 99; // 99 คือ status อื่นๆ (ถ้ามี)
+          const priorityB = statusPriority[b.status] || 99;
+          
+          if (priorityA !== priorityB) {
+              return priorityA - priorityB; // น้อยไปมาก (active -> pending -> expired)
+          }
+
+          // 2. ถ้า Status เท่ากัน ให้เรียงตามวันที่สร้าง (ใหม่สุดขึ้นก่อน)
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      })
 
     return NextResponse.json({
       success: true,
