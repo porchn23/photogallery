@@ -16,8 +16,6 @@ export async function GET(
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     // 2. ดึงรายการกล้องที่ Active อยู่ในงานนี้
-    // ดึงข้อมูลจากตาราง event_cameras join กับ cameras และ ai_models
-    // ✅ เพิ่ม user_id เข้าไปใน select list
     const { data, error } = await supabase
       .from('event_cameras')
       .select(`
@@ -37,10 +35,15 @@ export async function GET(
         ai_models (
           name,
           code
+        ),
+        users (
+          full_name,
+          avatar_url,
+          phone_number
         )
       `)
       .eq('event_id', eventId)
-      .eq('status', 'active') // เอาเฉพาะกล้องที่ยังเชื่อมต่ออยู่
+      .eq('status', 'active')
       .order('last_seen', { ascending: false })
 
     if (error) throw error
