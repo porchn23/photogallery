@@ -34,13 +34,14 @@ export async function GET(
       return NextResponse.json({ error: 'คุณไม่มีสิทธิ์เข้าถึงงานนี้' }, { status: 403 })
     }
 
-    // --- LOGIC คำนวณวันหมดอายุ Storage ---
-    const createdDate = new Date(data.created_at)
+    // --- LOGIC คำนวณวันหมดอายุ Storage (แก้ไขให้ใช้ start_time) ---
+    const startTime = data.start_time ? new Date(data.start_time) : new Date(data.created_at)
     const storageDays = data.storage_days || 0
-    
-    // วันหมดอายุ = วันสร้าง + จำนวนวันที่เก็บ
-    const expireDate = new Date(createdDate)
-    expireDate.setDate(createdDate.getDate() + storageDays)
+  
+
+    // วันหมดอายุ = วันเริ่มงาน + จำนวนวันที่เก็บ
+    const expireDate = new Date(startTime)
+    expireDate.setDate(startTime.getDate() + storageDays)
     
     // คำนวณเวลาที่เหลือ (มิลลิวินาที)
     const now = new Date()
