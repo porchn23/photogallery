@@ -12,11 +12,23 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "ROOPLIFE | AI FACE GRID", // เปลี่ยนข้อความ title ตรงนี้
-  description: "AI Face Grid Photo Gallery", // เปลี่ยนคำบรรยาย (ถ้าต้องการ)
-};
 
+export const metadata: Metadata = {
+  title: {
+    default: "ROOPLIFE | AI FACE GRID - ระบบส่งรูปอัจฉริยะสำหรับช่างภาพมืออาชีพ",
+    template: "%s | ROOPLIFE"
+  },
+  description: "เปลี่ยนงานอีเวนต์ให้ล้ำสมัยด้วยระบบส่งภาพ AI Real-time ค้นหาใบหน้าแม่นยำ แจกรูปผ่าน QR Code สำหรับงานแต่ง งานวิ่ง และงานอีเวนต์ทุกรูปแบบ",
+  keywords: ["ช่างภาพ", "ระบบส่งรูป", "AI Face Recognition", "งานแต่ง", "งานวิ่ง", "แกลเลอรี่รูปภาพ", "RoopLife"],
+  openGraph: {
+    title: "ROOPLIFE | ระบบแกลเลอรี่ AI สำหรับช่างภาพยุคใหม่",
+    description: "ส่งรูปไวถึงมือลูกค้าทันทีด้วยระบบค้นหาใบหน้าอัจฉริยะ",
+    url: "https://www.rooplife.com",
+    siteName: "ROOPLIFE",
+    locale: "th_TH",
+    type: "website",
+  },
+};
 
 export default function RootLayout({
   children,

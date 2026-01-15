@@ -14,6 +14,7 @@ import {
 import AIFaceBackground from '../components/AIFaceBackground' 
 import BeforeAfterSlider from '../components/BeforeAfterSlider'
 
+
 export default async function LandingPage() {
   const cookieStore = await cookies()
   const supabase = createServerClient(
@@ -29,10 +30,28 @@ export default async function LandingPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (user) redirect('/dashboard')
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "ROOPLIFE",
+    "operatingSystem": "Web, Mobile",
+    "applicationCategory": "PhotographyApplication",
+    "description": "AI Real-time photo delivery system for event photographers.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "THB"
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white text-zinc-900 font-sans selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden relative">
       
       {/* --- Performance Optimized Fluid Background --- */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <AIFaceBackground />
 
       {/* --- Header / Navigation --- */}
