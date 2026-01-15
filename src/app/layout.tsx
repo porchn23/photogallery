@@ -38,9 +38,26 @@ export const metadata: Metadata = {
     title: "ROOPLIFE | ระบบแกลเลอรี่ AI สำหรับช่างภาพยุคใหม่",
     description: "ส่งรูปไวถึงมือลูกค้าทันทีด้วยระบบค้นหาใบหน้าอัจฉริยะ",
     url: "https://www.rooplife.com",
+    images: [
+      {
+        url: "/rooplife-logo/android-chrome-512x512.png",
+        width: 512,
+        height: 512,
+        alt: "ROOPLIFE AI Photo Gallery",
+      },
+    ],
     siteName: "ROOPLIFE",
     locale: "th_TH",
     type: "website",
+  },
+  alternates: {
+    canonical: "https://www.rooplife.com",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ROOPLIFE | AI FACE GRID",
+    description: "ระบบส่งรูปอัจฉริยะสำหรับช่างภาพมืออาชีพ",
+    images: ["/rooplife-logo/android-chrome-512x512.png"],
   },
 };
 
