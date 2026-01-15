@@ -19,6 +19,20 @@ export const metadata: Metadata = {
     template: "%s | ROOPLIFE"
   },
   description: "เปลี่ยนงานอีเวนต์ให้ล้ำสมัยด้วยระบบส่งภาพ AI Real-time ค้นหาใบหน้าแม่นยำ แจกรูปผ่าน QR Code สำหรับงานแต่ง งานวิ่ง และงานอีเวนต์ทุกรูปแบบ",
+  icons: {
+    icon: [
+      { url: "/rooplife-logo/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/rooplife-logo/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+    ],
+    shortcut: "/rooplife-logo/favicon.ico",
+    apple: "/rooplife-logo/apple-touch-icon.png",
+    other: [
+      {
+        rel: "apple-touch-icon-precomposed",
+        url: "/rooplife-logo/apple-touch-icon.png",
+      },
+    ],
+  },
   keywords: ["ช่างภาพ", "ระบบส่งรูป", "AI Face Recognition", "งานแต่ง", "งานวิ่ง", "แกลเลอรี่รูปภาพ", "RoopLife"],
   openGraph: {
     title: "ROOPLIFE | ระบบแกลเลอรี่ AI สำหรับช่างภาพยุคใหม่",
