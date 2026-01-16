@@ -73,7 +73,7 @@ export async function POST(request: Request) {
         start_time: startTimeISO,
         join_code: joinCode,
         max_cameras: 1,
-        storage_days: 3,
+        storage_days: 2,
         status: 'active',
         timezone_name: timezone || 'Asia/Bangkok',
         timezone_offset: timezone_offset ?? 7
