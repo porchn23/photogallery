@@ -37,17 +37,27 @@ export async function POST(request: Request) {
       return cleanDate.includes('+') || cleanDate.includes('Z') 
           ? new Date(cleanDate).toISOString() 
           : new Date(`${cleanDate}+07:00`).toISOString();
-  };
+    };
 
-    // 3. จัดการเรื่องเวลาให้ตรงตาม Timezone ที่ส่งมา
-    let startTimeISO;
-    if (start_time) {
-      // ถ้าส่งมาเป็น ISO ที่มีโซน (เช่น ...+07:00) new Date จะจัดการให้เอง
-      // ถ้าไม่มีโซน เราจะใช้ข้อมูล timezone_offset ที่ส่งมาช่วย (ถ้ามี)
-      startTimeISO = new Date(start_time).toISOString();
-    } else {
-      startTimeISO = new Date().toISOString();
-    }
+     // 3. จัดการเรื่องเวลา (UTC Normalization)
+     let startTimeISO;
+     if (start_time) {
+       // ตรวจสอบว่า start_time มีโซนติดมาด้วยหรือไม่ (เช่น มี Z หรือ +07:00)
+       const hasZone = /Z|[+-]\d{2}:?\d{2}$/.test(start_time);
+       
+       if (hasZone) {
+         startTimeISO = new Date(start_time).toISOString();
+       } else {
+         // หากไม่มีโซน ให้ใช้ timezone_offset ที่ส่งมา (ถ้าไม่มีใช้ +07 เป็นค่าพื้นฐาน)
+         const offset = timezone_offset ?? 7;
+         const sign = offset >= 0 ? '+' : '-';
+         const absOffset = Math.abs(offset).toString().padStart(2, '0');
+         // ประกอบร่างเป็น ISO ที่สมบูรณ์: "2026-01-16T23:25:00+07:00"
+         startTimeISO = new Date(`${start_time}${sign}${absOffset}:00`).toISOString();
+       }
+     } else {
+       startTimeISO = new Date().toISOString();
+     }
 
 
     // 4. หักเงิน
@@ -70,7 +80,6 @@ export async function POST(request: Request) {
         max_cameras: 1,
         storage_days: 3,
         status: 'active'
-        // metadata: { timezone, timezone_offset } // เลือกเก็บเพิ่มได้ถ้าต้องการ
       })
       .select()
       .single()
