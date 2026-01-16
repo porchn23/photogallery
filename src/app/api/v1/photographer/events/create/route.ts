@@ -39,25 +39,21 @@ export async function POST(request: Request) {
           : new Date(`${cleanDate}+07:00`).toISOString();
     };
 
-     // 3. จัดการเรื่องเวลา (UTC Normalization)
-     let startTimeISO;
-     if (start_time) {
-       // ตรวจสอบว่า start_time มีโซนติดมาด้วยหรือไม่ (เช่น มี Z หรือ +07:00)
-       const hasZone = /Z|[+-]\d{2}:?\d{2}$/.test(start_time);
-       
-       if (hasZone) {
-         startTimeISO = new Date(start_time).toISOString();
-       } else {
-         // หากไม่มีโซน ให้ใช้ timezone_offset ที่ส่งมา (ถ้าไม่มีใช้ +07 เป็นค่าพื้นฐาน)
-         const offset = timezone_offset ?? 7;
-         const sign = offset >= 0 ? '+' : '-';
-         const absOffset = Math.abs(offset).toString().padStart(2, '0');
-         // ประกอบร่างเป็น ISO ที่สมบูรณ์: "2026-01-16T23:25:00+07:00"
-         startTimeISO = new Date(`${start_time}${sign}${absOffset}:00`).toISOString();
-       }
-     } else {
-       startTimeISO = new Date().toISOString();
-     }
+    // --- จัดการเรื่องเวลา (UTC Normalization) ---
+    let startTimeISO;
+    if (start_time) {
+      const hasZone = /Z|[+-]\d{2}:?\d{2}$/.test(start_time);
+      if (hasZone) {
+        startTimeISO = new Date(start_time).toISOString();
+      } else {
+        const offset = timezone_offset ?? 7;
+        const sign = offset >= 0 ? '+' : '-';
+        const absOffset = Math.abs(offset).toString().padStart(2, '0');
+        startTimeISO = new Date(`${start_time}${sign}${absOffset}:00`).toISOString();
+      }
+    } else {
+      startTimeISO = new Date().toISOString();
+    }
 
 
     // 4. หักเงิน
@@ -68,8 +64,7 @@ export async function POST(request: Request) {
 
     if (updateError) throw new Error('การหักเงินล้มเหลว')
 
-    // 5. สร้าง Event
-    // 4. สร้าง Event (เพิ่มฟิลด์ timezone ถ้าใน DB มีรองรับ หรือบันทึกแค่เวลาที่ถูกต้อง)
+    // --- สร้าง Event ---
     const { data: newEvent, error: eventError } = await supabase
       .from('events')
       .insert({
@@ -79,7 +74,9 @@ export async function POST(request: Request) {
         join_code: joinCode,
         max_cameras: 1,
         storage_days: 3,
-        status: 'active'
+        status: 'active',
+        timezone_name: timezone || 'Asia/Bangkok',
+        timezone_offset: timezone_offset ?? 7
       })
       .select()
       .single()
