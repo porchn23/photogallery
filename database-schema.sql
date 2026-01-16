@@ -94,6 +94,8 @@ CREATE TABLE public.events (
   watermark_version bigint,
   watermark_position text,
   watermark_size integer DEFAULT 400,
+  timezone_name text DEFAULT 'Asia/Bangkok'::text,
+  timezone_offset integer DEFAULT 7,
   CONSTRAINT events_pkey PRIMARY KEY (id),
   CONSTRAINT events_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.users(id)
 );
@@ -166,6 +168,7 @@ CREATE TABLE public.users (
   avatar_url text,
   wallet_balance numeric DEFAULT '200'::numeric CHECK (wallet_balance >= 0::numeric),
   full_name text,
+  status text DEFAULT 'active'::text,
   CONSTRAINT users_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.wallet_transactions (

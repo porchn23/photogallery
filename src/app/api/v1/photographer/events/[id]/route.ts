@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/src/lib/supabaseServer'
 
 // GET: ดึงข้อมูลรายละเอียดงาน (Event Detail) พร้อมคำนวณวันหมดอายุ
+// GET: ดึงข้อมูลรายละเอียดงาน (Event Detail) พร้อมคำนวณวันหมดอายุ
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -34,29 +35,51 @@ export async function GET(
       return NextResponse.json({ error: 'คุณไม่มีสิทธิ์เข้าถึงงานนี้' }, { status: 403 })
     }
 
-    const startTimeMs = new Date(data.start_time || data.created_at).getTime();
+    // --- LOGIC คำนวณวันหมดอายุที่ถูกต้อง (อิงตาม Timezone ของงาน) ---
+    const startTime = new Date(data.start_time || data.created_at);
     const storageDays = data.storage_days || 0;
-    const nowTimeMs = Date.now();
+    const offset = data.timezone_offset ?? 7; // ใช้ offset จาก DB (ถ้าไม่มีใช้ +7)
 
-    // 1. วันหมดอายุ (UTC Timestamp)
-    const expireTimeMs = startTimeMs + (storageDays * 24 * 60 * 60 * 1000);
+    // 1. วันหมดอายุจริง (UTC Timestamp)
+    const expireTimeMs = startTime.getTime() + (storageDays * 24 * 60 * 60 * 1000);
     const expireDate = new Date(expireTimeMs);
 
-    // 2. ป้องกันเลขดีดเป็น 3 วัน (ถ้ายังไม่เริ่มงาน ให้ถือว่าตอนนี้คือเวลาเริ่มงาน)
-    const effectiveNow = Math.max(nowTimeMs, startTimeMs);
-    const diffMs = expireTimeMs - effectiveNow;
+    // 2. คำนวณวันที่เหลือแบบ Calendar Days ใน Timezone นั้นๆ
+    const now = new Date();
+    
+    // ฟังก์ชันช่วยหา "จุดเริ่มของวัน" (00:00) ใน timezone ของงาน
+    const getLocalDayTimestamp = (date: Date, offsetHours: number) => {
+        const localTime = new Date(date.getTime() + (offsetHours * 60 * 60 * 1000));
+        localTime.setUTCHours(0, 0, 0, 0);
+        return localTime.getTime();
+    };
 
-    // 3. คำนวณวันคงเหลือ (ปัดเศษขึ้น)
-    const remainingDays = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
-    const storageStatus = nowTimeMs < expireTimeMs ? 'active' : 'expired';
+    const todayLocal = getLocalDayTimestamp(now, offset);
+    const startLocal = getLocalDayTimestamp(startTime, offset);
+    const expireLocal = getLocalDayTimestamp(expireDate, offset);
 
+    // ถ้ายังไม่ถึงวันเริ่มงาน ให้เริ่มนับจากวันเริ่มงาน (เพื่อให้ได้เลข 2 วันเป๊ะในวันแรก)
+    const effectiveToday = Math.max(todayLocal, startLocal);
+    const remainingDays = Math.max(0, Math.round((expireLocal - effectiveToday) / (1000 * 60 * 60 * 24)));
+    
+    const storageStatus = now.getTime() < expireTimeMs ? 'active' : 'expired';
+
+    // แปลง start_time จาก UTC เป็น Local Time ตาม offset ของงานเพื่อคืนค่าให้ Mobile App
+    const localStartTime = data.start_time 
+      ? new Date(new Date(data.start_time).getTime() + (offset * 60 * 60 * 1000)).toISOString().replace('Z', '')
+      : null;
+    // -----------------------------------------------------------
 
     return NextResponse.json({
       success: true,
       event: {
         ...data,
+        start_time: localStartTime, // คืนค่าเป็นเวลาท้องถิ่น (เช่น 02:33:56) ตามที่ต้องการ
         role: isOwner ? 'owner' : 'member',
+        event_members: undefined, // ล้างออกเพื่อให้คลีน
+        
         storage_info: {
+            days_purchased: storageDays,
             expire_at: expireDate.toISOString(),
             remaining_days: remainingDays,
             status: storageStatus
@@ -69,7 +92,7 @@ export async function GET(
   }
 }
 
-// PATCH: แก้ไขข้อมูลงาน (โค้ดเดิม)
+// PATCH: แก้ไขข้อมูลงาน
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -79,14 +102,14 @@ export async function PATCH(
     const { id: eventId } = await params
     const body = await request.json()
     
-    // 1. รับค่าที่ต้องการแก้ไข รวมถึง Timezone ข้อมูล
+    // 1. รับค่าที่ต้องการแก้ไข รวมถึงข้อมูล Timezone
     const { title, start_time, timezone, timezone_offset } = body
 
     // 2. Auth Check
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // 3. ตรวจสอบว่าตากล้องเป็นเจ้าของงานจริงไหม
+    // 3. ตรวจสอบสิทธิ์เจ้าของงาน
     const { data: eventData } = await supabase
       .from('events')
       .select('owner_id')
@@ -104,17 +127,25 @@ export async function PATCH(
     if (timezone) updateData.timezone_name = timezone
     if (timezone_offset !== undefined) updateData.timezone_offset = timezone_offset
     
+    // --- โค้ดที่ต้องแก้ไขเพื่อให้เวลาตรงเป๊ะ ---
+
     if (start_time) {
-      // ตรวจสอบว่า start_time มีโซนติดมาด้วยหรือไม่
+      // 1. ตรวจสอบว่าส่งมาเป็น ISO ที่มีโซนอยู่แล้วหรือไม่
       const hasZone = /Z|[+-]\d{2}:?\d{2}$/.test(start_time);
+      
       if (hasZone) {
+        // ถ้ามีโซนมาแล้ว (เช่น ...+07:00) ให้ใช้ได้เลย
         updateData.start_time = new Date(start_time).toISOString();
       } else {
-        // หากไม่มีโซน ให้ใช้ timezone_offset ที่ส่งมา (ถ้าไม่มีใช้ +07 เป็นค่าพื้นฐาน)
+        // 2. ถ้าไม่มีโซน (ส่งมาแค่ "2026-01-16T23:45:00")
+        // เราจะสร้าง Date object จากค่านั้น (ซึ่ง JS จะมองเป็นเวลาเครื่อง) 
+        // แล้วเราจะหักลบ Offset ออกด้วยมือเพื่อให้เป็น UTC ที่ถูกต้อง
+        const localDate = new Date(start_time);
         const offset = timezone_offset ?? 7;
-        const sign = offset >= 0 ? '+' : '-';
-        const absOffset = Math.abs(offset).toString().padStart(2, '0');
-        updateData.start_time = new Date(`${start_time}${sign}${absOffset}:00`).toISOString();
+        
+        // แปลงเวลาท้องถิ่นให้เป็น UTC โดยการ "ลบ" offset ออก (เป็นมิลลิวินาที)
+        const utcTimestamp = localDate.getTime() - (offset * 60 * 60 * 1000);
+        updateData.start_time = new Date(utcTimestamp).toISOString();
       }
     }
 
