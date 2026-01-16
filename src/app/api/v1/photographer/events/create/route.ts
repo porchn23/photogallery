@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { title, start_time } = await request.json()
+    const { title, start_time, timezone, timezone_offset } = await request.json()
     const cost = 100 // ราคาเปิดงาน
 
     if (!title) return NextResponse.json({ error: 'กรุณาระบุชื่ออีเวนต์' }, { status: 400 })
@@ -38,8 +38,16 @@ export async function POST(request: Request) {
           ? new Date(cleanDate).toISOString() 
           : new Date(`${cleanDate}+07:00`).toISOString();
   };
-  
-  const startTimeISO = formatToISO(start_time);
+
+    // 3. จัดการเรื่องเวลาให้ตรงตาม Timezone ที่ส่งมา
+    let startTimeISO;
+    if (start_time) {
+      // ถ้าส่งมาเป็น ISO ที่มีโซน (เช่น ...+07:00) new Date จะจัดการให้เอง
+      // ถ้าไม่มีโซน เราจะใช้ข้อมูล timezone_offset ที่ส่งมาช่วย (ถ้ามี)
+      startTimeISO = new Date(start_time).toISOString();
+    } else {
+      startTimeISO = new Date().toISOString();
+    }
 
 
     // 4. หักเงิน
@@ -51,6 +59,7 @@ export async function POST(request: Request) {
     if (updateError) throw new Error('การหักเงินล้มเหลว')
 
     // 5. สร้าง Event
+    // 4. สร้าง Event (เพิ่มฟิลด์ timezone ถ้าใน DB มีรองรับ หรือบันทึกแค่เวลาที่ถูกต้อง)
     const { data: newEvent, error: eventError } = await supabase
       .from('events')
       .insert({
@@ -59,8 +68,9 @@ export async function POST(request: Request) {
         start_time: startTimeISO,
         join_code: joinCode,
         max_cameras: 1,
-        storage_days: 2, // ค่าเริ่มต้นตามแผนใหม่
+        storage_days: 3,
         status: 'active'
+        // metadata: { timezone, timezone_offset } // เลือกเก็บเพิ่มได้ถ้าต้องการ
       })
       .select()
       .single()

@@ -89,7 +89,7 @@ export async function PATCH(
     const { id: eventId } = await params
     const body = await request.json()
     
-    const { title, start_time } = body
+    const { title, start_time, timezone, timezone_offset } = body
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -109,12 +109,10 @@ export async function PATCH(
     if (title) updateData.title = title
 
     if (start_time) {
-        const cleanDate = start_time.replace(' ', 'T');
-        updateData.start_time = cleanDate.includes('+') || cleanDate.includes('Z') 
-            ? new Date(cleanDate).toISOString() 
-            : new Date(`${cleanDate}+07:00`).toISOString();
+      // จัดการแปลงเวลาให้เป็น UTC ที่ถูกต้องก่อนบันทึก
+      updateData.start_time = new Date(start_time).toISOString();
     }
-    
+
     const { data: updated, error } = await supabase
       .from('events')
       .update(updateData)
