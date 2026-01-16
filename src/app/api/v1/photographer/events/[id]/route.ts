@@ -107,8 +107,14 @@ export async function PATCH(
 
     const updateData: any = {}
     if (title) updateData.title = title
-    if (start_time) updateData.start_time = new Date(start_time).toISOString()
 
+    if (start_time) {
+        const cleanDate = start_time.replace(' ', 'T');
+        updateData.start_time = cleanDate.includes('+') || cleanDate.includes('Z') 
+            ? new Date(cleanDate).toISOString() 
+            : new Date(`${cleanDate}+07:00`).toISOString();
+    }
+    
     const { data: updated, error } = await supabase
       .from('events')
       .update(updateData)
