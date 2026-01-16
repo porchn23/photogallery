@@ -28,8 +28,15 @@ export async function POST(request: Request) {
 
     // 3. เตรียมข้อมูล
     const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase()
-    const startTimeISO = start_time ? new Date(start_time).toISOString() : new Date().toISOString()
-
+    // เป็นวิธีที่ปลอดภัยกว่า:
+    let startTimeISO;
+    if (start_time) {
+        // ถ้าส่งเวลามา ให้เช็คว่ามี Timezone ไหม ถ้าไม่มีให้บวก Z เข้าไป หรือจัดการให้เป็น UTC
+        startTimeISO = new Date(start_time).toISOString();
+    } else {
+        // ถ้าไม่ส่งมา ให้ใช้เวลา "ตอนนี้" ของโลกจริงๆ
+        startTimeISO = new Date().toISOString();
+    }
     // 4. หักเงิน
     const { error: updateError } = await supabase
       .from('users')
