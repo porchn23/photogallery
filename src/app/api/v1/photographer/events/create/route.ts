@@ -47,7 +47,7 @@ export async function POST(request: Request) {
         start_time: startTimeISO,
         join_code: joinCode,
         max_cameras: 1,
-        storage_days: 3, // ค่าเริ่มต้นตามแผนใหม่
+        storage_days: 2, // ค่าเริ่มต้นตามแผนใหม่
         status: 'active'
       })
       .select()
