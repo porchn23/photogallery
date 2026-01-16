@@ -34,25 +34,28 @@ export async function GET(
       return NextResponse.json({ error: 'คุณไม่มีสิทธิ์เข้าถึงงานนี้' }, { status: 403 })
     }
 
-    // --- LOGIC คำนวณวันหมดอายุ Storage (แก้ไขให้ใช้ start_time) ---
-    const startTime = data.start_time ? new Date(data.start_time) : new Date(data.created_at)
-    const storageDays = data.storage_days || 0
-  
+    // --- LOGIC แก้ไขใหม่: คำนวณจากเวลาจริง ไม่สน Timezone Server ---
+    const startTimeMs = new Date(data.start_time || data.created_at).getTime();
+    const storageDays = data.storage_days || 0;
+    const nowTimeMs = Date.now();
 
-    // วันหมดอายุ = วันเริ่มงาน + จำนวนวันที่เก็บ
-    const expireDate = new Date(startTime)
-    expireDate.setDate(startTime.getDate() + storageDays)
+    // 1. วันหมดอายุ (Timestamp) = เริ่มงาน + จำนวนวัน
+    const expireTimeMs = startTimeMs + (storageDays * 24 * 60 * 60 * 1000);
+    const expireDate = new Date(expireTimeMs);
+
+    // 2. คำนวณส่วนต่าง (สำคัญ: ถ้ายังไม่ถึงเวลางาน ให้เริ่มนับจากเวลาเริ่มงานเท่านั้น)
+    // วิธีนี้จะทำให้ช่วงที่ "ยังไม่เริ่มงาน" ค่าจะคงที่อยู่ที่ 2 วันเป๊ะ ไม่กระโดดเป็น 3
+    const effectiveNow = Math.max(nowTimeMs, startTimeMs);
+    const diffMs = expireTimeMs - effectiveNow;
+
+    // 3. แปลงเป็นจำนวนวัน (ปัดเศษขึ้น)
+    // ถ้าเหลือ 2.0 วันพอดิบพอดี จะได้ 2
+    // ถ้าผ่านไป 1 นาที (เหลือ 1.99 วัน) จะได้ 2 (เพราะยังอยู่ในวันที่ 2)
+    const remainingDays = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
     
-    // คำนวณเวลาที่เหลือ (มิลลิวินาที)
-    const now = new Date()
-    const diffTime = expireDate.getTime() - now.getTime()
-    
-    // แปลงเป็นจำนวนวัน (ปัดเศษขึ้น) -> ถ้าติดลบแปลว่าหมดอายุแล้ว
-    const remainingDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    
-    // สถานะ Storage: 'active' หรือ 'expired'
-    const storageStatus = remainingDays > 0 ? 'active' : 'expired'
-    // ----------------------------------------
+    // สถานะ
+    const storageStatus = nowTimeMs < expireTimeMs ? 'active' : 'expired';
+    // -----------------------------------------------------------
 
     return NextResponse.json({
       success: true,
