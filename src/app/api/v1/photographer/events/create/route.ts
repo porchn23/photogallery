@@ -42,19 +42,29 @@ export async function POST(request: Request) {
     // --- จัดการเรื่องเวลา (UTC Normalization) ---
     let startTimeISO;
     if (start_time) {
+      // ตรวจสอบว่า start_time ที่ส่งมามีเครื่องหมายบอก Timezone หรือไม่ (เช่น Z หรือ +07:00)
       const hasZone = /Z|[+-]\d{2}:?\d{2}$/.test(start_time);
+      
       if (hasZone) {
+        // ถ้ามี Timezone มาแล้ว (เช่นส่งมาแบบ ISO เต็มรูปแบบ) ให้ใช้ค่านั้นได้เลย
         startTimeISO = new Date(start_time).toISOString();
       } else {
-        const offset = timezone_offset ?? 7;
+        // ถ้าไม่มี Timezone (มาแค่ "2026-01-16T17:45:00") 
+        // เราต้องเอา timezone_offset ที่ส่งมา (เช่น 7) มาประกอบร่างให้เป็น ISO ที่สมบูรณ์
+        const offset = timezone_offset ?? 7; // ค่าเริ่มต้นเป็น +7 (ไทย)
         const sign = offset >= 0 ? '+' : '-';
         const absOffset = Math.abs(offset).toString().padStart(2, '0');
-        startTimeISO = new Date(`${start_time}${sign}${absOffset}:00`).toISOString();
+        
+        // สร้าง String แบบ "2026-01-16T17:45:00+07:00"
+        const fullDateStr = `${start_time.replace(' ', 'T')}${sign}${absOffset}:00`;
+        
+        // แปลงเป็น Date Object (JS จะแปลงเป็น UTC ให้เองโดยอัตโนมัติ)
+        startTimeISO = new Date(fullDateStr).toISOString();
       }
     } else {
+      // ถ้าไม่ส่งมาเลย ให้ใช้เวลาปัจจุบัน
       startTimeISO = new Date().toISOString();
     }
-
 
     // 4. หักเงิน
     const { error: updateError } = await supabase
