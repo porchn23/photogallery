@@ -72,6 +72,8 @@ CREATE TABLE public.event_cameras (
   camera_id uuid NOT NULL,
   ai_beauty_enabled boolean DEFAULT false,
   ai_model_id integer DEFAULT 1,
+  is_online boolean DEFAULT false,
+  last_ip text,
   CONSTRAINT event_cameras_pkey PRIMARY KEY (id),
   CONSTRAINT event_cameras_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id),
   CONSTRAINT fk_camera_photographer FOREIGN KEY (user_id) REFERENCES public.users(id),

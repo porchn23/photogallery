@@ -20,7 +20,38 @@ export default function MyGarage() {
     fetchInitialData();
   }, []);
 
-  
+// src/app/dashboard/garage/page.js
+
+useEffect(() => {
+  if (!user?.id) return;
+
+  // สร้าง Channel สำหรับฟังการเปลี่ยนแปลง
+  const channel = supabase.channel(`garage-realtime-${user.id}`)
+    
+    // 1. ฟังตาราง cameras: ถ้ามีการแก้ไขข้อมูลกล้อง ให้โหลดใหม่
+    .on('postgres_changes', { 
+      event: '*', 
+      schema: 'public', 
+      table: 'cameras', 
+      filter: `owner_id=eq.${user.id}` 
+    }, () => fetchCameras(user.id))
+    
+    // 2. ฟังตาราง event_cameras: ถ้าสถานะออนไลน์ในงานเปลี่ยน ให้โหลดใหม่ทันที
+    // ใช้ event: '*' เพื่อให้ครอบคลุมทั้ง Insert (จอยงานใหม่) และ Update (เปลี่ยนสถานะ Online)
+    .on('postgres_changes', { 
+      event: '*', 
+      schema: 'public', 
+      table: 'event_cameras' 
+    }, () => {
+      console.log("Detected change in event_cameras, refreshing garage...");
+      fetchCameras(user.id);
+    })
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [user?.id]);
 
 // ... existing code (บรรทัด 1-22)
 
@@ -54,16 +85,32 @@ async function fetchInitialData() {
   }
 
 // ... existing code (บรรทัด 38 เป็นต้นไป)
-
 async function fetchCameras(userId) {
   const { data } = await supabase
     .from('cameras')
-    .select('*')
+    .select(`
+      *,
+      event_cameras (
+        is_online,
+        status
+      )
+    `)
     .eq('owner_id', userId)
-    .neq('status', 'archived') // เพิ่มบรรทัดนี้: ไม่เอาตัวที่ถูกเก็บเข้ากรุแล้ว
+    .eq('status', 'active')
     .order('created_at', { ascending: false });
-  
-  setCameras(data || []);
+
+  const camerasWithStatus = data?.map(cam => {
+    // เช็คว่า "มีอย่างน้อยหนึ่งงาน" ที่กำลัง Active และ Online หรือไม่
+    const isOnline = Array.isArray(cam.event_cameras) && 
+                     cam.event_cameras.some(ec => ec.status === 'active' && ec.is_online === true);
+    
+    return {
+      ...cam,
+      is_online: isOnline
+    };
+  });
+
+  setCameras(camerasWithStatus || []);
   setLoading(false);
 }
 
@@ -203,12 +250,15 @@ const handleDeleteCamera = async (cameraId) => {
 
 
     <div className="flex items-center gap-2">
-        <span className="flex items-center gap-1.5 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] font-bold rounded-full uppercase tracking-tighter">
-            <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-            {cam.status}
-        </span>
-        
-        {/* ปุ่มลบกล้อง */}
+    <span className={`flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold rounded-full uppercase transition-all duration-500 ${
+        cam.is_online 
+            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
+            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400'
+      }`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${cam.is_online ? 'bg-green-500 animate-pulse' : 'bg-zinc-400'}`} />
+        {cam.is_online ? 'Online' : 'Offline'}
+      </span>
+
         <button 
             onClick={() => handleDeleteCamera(cam.id)}
             className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
