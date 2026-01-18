@@ -15,6 +15,17 @@ CREATE TABLE public.ai_models (
   parameters jsonb DEFAULT '{}'::jsonb,
   CONSTRAINT ai_models_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.camera_auth_logs (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  camera_username text,
+  camera_serial text,
+  event_id uuid,
+  ip_address text,
+  message text,
+  status text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT camera_auth_logs_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.cameras (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   serial_number text NOT NULL,

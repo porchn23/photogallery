@@ -24,6 +24,7 @@ export async function GET(
         user_id,
         status,
         last_seen,
+        is_online,
         ai_beauty_enabled,
         ai_model_id,
         cameras (

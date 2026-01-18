@@ -67,12 +67,32 @@ export default function EventManagement() {
 
   // ✅ ปรับ Realtime Subscription: ไม่เรียก fetchData แบบ Loading เต็มหน้า
   useEffect(() => {
-    if (eventId) fetchData(true); // โหลดครั้งแรก show loading
+    if (eventId) fetchData(true);
+    
     const channel = supabase.channel(`event-mgmt-${eventId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_cameras' }, () => fetchData(false))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_members' }, () => fetchData(false))
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'photos' }, () => fetchData(false))
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'events', filter: `id=eq.${eventId}` }, () => fetchData(false))
+      // 1. ดักจับการอัปเดตสถานะ (is_online, ai_beauty ฯลฯ)
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'event_cameras' 
+      }, (payload) => {
+        // อัปเดตข้อมูลใน State ทันทีที่ได้รับ Payload
+        setActiveCameras(prev => prev.map(cam => 
+          cam.id === payload.new.id ? { ...cam, ...payload.new } : cam
+        ));
+      })
+      // 2. ดักจับการเพิ่มกล้องใหม่ หรือ ลบกล้อง
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'event_cameras' 
+      }, () => fetchData(false))
+      .on('postgres_changes', { 
+        event: 'DELETE', 
+        schema: 'public', 
+        table: 'event_cameras' 
+      }, () => fetchData(false))
+      // ... ส่วนอื่นๆ คงเดิม ...
       .subscribe();
     return () => supabase.removeChannel(channel);
   }, [eventId]);
@@ -532,7 +552,7 @@ const handleCheckIn = async (camId) => {
                         <span className="text-[9px] font-black uppercase tracking-widest leading-none">{ac.ai_beauty_enabled ? 'AI ON' : 'AI OFF'}</span>
                       </button>
                     )}
-                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                    <span className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${ac.is_online ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
                   </div>
                 </div>
 
