@@ -3,12 +3,14 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+// src/app/page.tsx บรรทัดที่ 6-11
 import { 
   Zap, Camera, Users, ShieldCheck, 
   ArrowRight, CheckCircle2, Cloud, Sparkles, Lock,
   Globe, CreditCard, Settings, Plus, QrCode, FileImage, 
-  Star, BarChart3 
+  Star, BarChart3, Smartphone, Usb, Wifi, Link2, Apple, PlayCircle, Download, LayoutDashboard, BellRing // เพิ่มไอคอนที่นี่
 } from 'lucide-react'
+
 
 // นำเข้า Background ที่ลื่นไหลและพริ้วไหว
 import AIFaceBackground from '../components/AIFaceBackground' 
@@ -86,7 +88,7 @@ export default async function LandingPage() {
           
           <div className="space-y-3">
             <h1 className="text-3xl md:text-6xl font-black tracking-tight leading-tight px-4">
-              เปลี่ยนงานอีเวนต์ให้ <span className="text-blue-600">ล้ำสมัย</span> <br />
+              เปลี่ยนงานอีเวนต์ให้ <span className="text-blue-600">ล้ำ สุดๆ</span> <br />
               ด้วยระบบส่งภาพ <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 animate-text-gradient">AI Real-time</span>
             </h1>
             
@@ -285,6 +287,222 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      {/* --- Phone Bridge (Hybrid Connectivity) --- */}
+      <section className="relative z-10 py-24 px-6 bg-blue-50/20 overflow-hidden border-y border-blue-100/50">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            
+            {/* Visual Part */}
+            <div className="relative order-2 lg:order-1">
+              <div className="relative w-full aspect-square max-w-md mx-auto">
+                <div className="absolute inset-0 bg-gradient-to-tr from-blue-400/20 to-purple-400/20 blur-[80px] rounded-full animate-pulse"></div>
+                
+                <div className="relative z-10 w-full h-full bg-white rounded-[3rem] shadow-2xl border border-zinc-100 flex items-center justify-center p-8">
+                  <div className="flex flex-col items-center gap-8 w-full">
+                    <div className="flex items-center justify-center gap-6 md:gap-12 w-full">
+                      <div className="w-16 h-16 md:w-20 md:h-20 bg-zinc-50 rounded-2xl flex items-center justify-center shadow-sm border border-zinc-100 text-zinc-400">
+                        <Camera size={32} />
+                      </div>
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="flex gap-1">
+                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce"></div>
+                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                        </div>
+                        <span className="text-[8px] font-black text-blue-600 uppercase tracking-widest">Bridging</span>
+                      </div>
+                      <div className="w-16 h-16 md:w-20 md:h-20 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 text-white">
+                        <Smartphone size={32} />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 w-full">
+                      <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100 text-center space-y-1">
+                        <Usb size={18} className="mx-auto text-blue-500" />
+                        <p className="text-[10px] font-bold uppercase tracking-tighter">USB OTG</p>
+                      </div>
+                      <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100 text-center space-y-1">
+                        <Wifi size={18} className="mx-auto text-blue-500" />
+                        <p className="text-[10px] font-bold uppercase tracking-tighter">WiFi Direct</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Text Part */}
+            <div className="space-y-8 order-1 lg:order-2">
+              <div className="space-y-4">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded-full">
+                  <Link2 size={12} />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-white">Hybrid Connectivity</span>
+                </div>
+                <h2 className="text-3xl md:text-5xl font-black tracking-tight leading-tight">
+                  Phone Bridge: <br />
+                  <span className="text-blue-600">รองรับกล้องทุกรุ่น</span> แม้ไม่มี FTP
+                </h2>
+                <p className="text-zinc-500 text-sm md:text-base leading-relaxed">
+                  เปลี่ยนมือถือของคุณให้เป็น "สะพาน" ส่งภาพเข้าสู่ระบบแกลเลอรีทันที 
+                  ไม่ว่าจะเป็นกล้องรุ่นเล็กหรือรุ่นใหญ่ ก็สามารถใช้พลังของ AI Real-time ได้ 
+                  เพียงเชื่อมต่อผ่านสาย USB (OTG) หรือ WiFi จากแอปกล้องที่คุณใช้อยู่
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {[
+                  { title: "USB Wired Upload", desc: "เชื่อมต่อผ่านสาย OTG (USB-C/Lightning) เสถียรและเร็วที่สุด เหมาะสำหรับไฟล์ RAW/JPG ขนาดใหญ่" },
+                  { title: "WiFi Bridge Mode", desc: "ดึงภาพผ่านแอปกล้อง (Sony/Canon/Nikon/Fuji) แล้วอัปโหลดอัตโนมัติผ่าน Mobile App" },
+                  { title: "Background Processing", desc: "ระบบอัปโหลดทำงานเบื้องหลัง ให้คุณโฟกัสกับการถ่ายภาพได้อย่างต่อเนื่อง" }
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-4">
+                    <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                      <CheckCircle2 size={12} />
+                    </div>
+                    <div className="space-y-0.5">
+                      <h4 className="text-xs font-bold text-zinc-900 uppercase tracking-tight">{item.title}</h4>
+                      <p className="text-[10px] text-zinc-500 leading-relaxed">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+
+      {/* --- Mobile App Download Section --- */}
+      <section className="relative z-10 py-24 px-6 bg-zinc-950 text-white overflow-hidden">
+        {/* Background Decorative Elements */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-600/10 blur-[120px] rounded-full pointer-events-none"></div>
+
+        <div className="max-w-6xl mx-auto relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            
+            {/* Text Side */}
+            <div className="space-y-10">
+              <div className="space-y-4">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full border border-white/10">
+                  <Smartphone size={12} className="text-blue-400" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-zinc-300">Management on the go</span>
+                </div>
+                <h2 className="text-3xl md:text-5xl font-black tracking-tight leading-tight">
+                  พกพาความอัจฉริยะ <br /> 
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">ไปกับคุณทุกที่</span>
+                </h2>
+                <p className="text-zinc-400 text-sm md:text-base leading-relaxed max-w-lg">
+                  ควบคุมทุกอย่างผ่านปลายนิ้ว ตั้งแต่การเปิดงานใหม่ จัดการกล้องในคลัง 
+                  ไปจนถึงการดูสถิติรูปภาพแบบเรียลไทม์ พร้อมระบบแจ้งเตือนเมื่อเกิดข้อผิดพลาด
+                </p>
+              </div>
+
+              {/* App Features List */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {[
+                  { icon: <LayoutDashboard size={18} />, title: "Live Dashboard", desc: "ดูสถานะงานและจำนวนรูปที่ส่งเข้ามาได้แบบวินาทีต่อวินาที" },
+                  { icon: <BellRing size={18} />, title: "Instant Alerts", desc: "แจ้งเตือนทันทีเมื่อกล้องหลุดการเชื่อมต่อ หรือแบตเตอรี่เหลือน้อย" },
+                  { icon: <Link2 size={18} />, title: "Quick Check-in", desc: "สแกน QR เพื่อจอยงานหรือเพิ่มกล้องเข้า Slot ได้ง่ายๆ" },
+                  { icon: <Cloud size={18} />, title: "Remote Control", desc: "สั่งเปิด-ปิด AI Beauty หรือเปลี่ยนลายน้ำได้จากระยะไกล" }
+                ].map((feat, i) => (
+                  <div key={i} className="flex gap-4 group">
+                    <div className="w-10 h-10 shrink-0 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                      {feat.icon}
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-bold uppercase tracking-tight text-white">{feat.title}</h4>
+                      <p className="text-[10px] text-zinc-500 leading-relaxed">{feat.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Download Buttons ( badges ) */}
+              <div className="flex flex-wrap gap-4 pt-4">
+                <button className="flex items-center gap-3 px-6 py-3 bg-white text-black rounded-2xl hover:scale-105 transition-all shadow-xl shadow-white/5 group">
+                <Image 
+                  src="/Assets/png-apple-logo-9711.png" 
+                  alt="Download on App Store" 
+                  width={32} 
+                  height={16} 
+                />
+                  <div className="text-left">
+                    <p className="text-[8px] font-bold uppercase leading-none opacity-60">Download on the</p>
+                    <p className="text-sm font-black leading-none mt-1">App Store</p>
+                  </div>
+                </button>
+                <button className="flex items-center gap-3 px-6 py-3 bg-zinc-800 text-white rounded-2xl border border-white/10 hover:bg-zinc-700 hover:scale-105 transition-all group">
+                <Image 
+                  src="/Assets/google-play-seeklogo.png" 
+                  alt="Download on App Store" 
+                  width={32} 
+                  height={16} 
+                />
+                  <div className="text-left">
+                    <p className="text-[8px] font-bold uppercase leading-none opacity-60">Get it on</p>
+                    <p className="text-sm font-black leading-none mt-1">Google Play</p>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Visual Side: App Mockup */}
+            <div className="relative">
+              <div className="relative w-[280px] md:w-[320px] aspect-[9/19.5] mx-auto bg-zinc-900 rounded-[3rem] border-[8px] border-zinc-800 shadow-[0_0_100px_rgba(59,130,246,0.2)] overflow-hidden">
+                {/* Phone Status Bar */}
+                <div className="absolute top-0 w-full h-8 flex justify-center items-end pb-1">
+                  <div className="w-20 h-4 bg-zinc-800 rounded-full"></div>
+                </div>
+                
+                {/* App Content Preview (Static Placeholder) */}
+                <div className="w-full h-full pt-10 px-4 space-y-4 bg-zinc-950">
+                  <div className="flex justify-between items-center">
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-zinc-500 font-bold uppercase">Dashboard</p>
+                      <h3 className="text-sm font-black">Wedding Gala</h3>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-bold">JD</div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-zinc-900 p-3 rounded-2xl border border-white/5 space-y-1">
+                      <p className="text-[8px] text-zinc-500 font-bold uppercase">Photos</p>
+                      <p className="text-xl font-black text-blue-500">1,240</p>
+                    </div>
+                    <div className="bg-zinc-900 p-3 rounded-2xl border border-white/5 space-y-1">
+                      <p className="text-[8px] text-zinc-500 font-bold uppercase">Storage</p>
+                      <p className="text-xl font-black text-purple-500">82%</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-[8px] text-zinc-500 font-bold uppercase">Active Cameras</p>
+                    <div className="bg-zinc-900/50 p-3 rounded-2xl border border-white/5 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                         <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                         <p className="text-[10px] font-bold">Sony A7 IV</p>
+                      </div>
+                      <p className="text-[10px] text-zinc-400">Online</p>
+                    </div>
+                  </div>
+                  {/* ... more app UI placeholders ... */}
+                  <div className="absolute bottom-6 left-4 right-4">
+                     <div className="w-full py-3 bg-blue-600 rounded-xl text-[10px] font-black uppercase tracking-widest text-center shadow-lg shadow-blue-500/20">
+                        Create New Event
+                     </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Floating Decoration */}
+              <div className="absolute -bottom-10 -right-4 md:-right-10 w-32 h-32 md:w-40 md:h-40 bg-white/5 backdrop-blur-3xl rounded-full border border-white/10 flex items-center justify-center animate-bounce [animation-duration:4s]">
+                 <QrCode size={40} className="text-white/20" />
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
       {/* --- New Section: AI Beauty Before/After Comparison --- */}
       <section className="relative z-10 py-24 px-6 bg-zinc-900 text-white overflow-hidden">
         
