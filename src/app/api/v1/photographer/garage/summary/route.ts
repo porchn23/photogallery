@@ -13,7 +13,7 @@ export async function GET(request: Request) {
       .from('cameras')
       .select('id, nickname, brand, model, serial_number, status')
       .eq('owner_id', user.id)
-      .neq('status', 'archived')
+      .eq('status', 'active')
 
     if (camError) throw camError
 
