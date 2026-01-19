@@ -351,8 +351,8 @@ export default async function LandingPage() {
 
               <div className="space-y-4">
                 {[
-                  { title: "USB Wired Upload", desc: "เชื่อมต่อผ่านสาย OTG (USB-C/Lightning) เสถียรและเร็วที่สุด เหมาะสำหรับไฟล์ RAW/JPG ขนาดใหญ่" },
-                  { title: "WiFi Bridge Mode", desc: "ดึงภาพผ่านแอปกล้อง (Sony/Canon/Nikon/Fuji) แล้วอัปโหลดอัตโนมัติผ่าน Mobile App" },
+                  { title: "USB Wired Upload", desc: "เชื่อมต่อผ่านสาย OTG (USB-C/Lightning) เสถียรและเร็วที่สุด" },
+                  { title: "WiFi Bridge Mode", desc: "ดึงภาพผ่านแอปกล้อง (Sony/Canon/Nikon/Fuji) แล้วอัปโหลดอัตโนมัติผ่าน Rooplife Mobile App" },
                   { title: "Background Processing", desc: "ระบบอัปโหลดทำงานเบื้องหลัง ให้คุณโฟกัสกับการถ่ายภาพได้อย่างต่อเนื่อง" }
                 ].map((item, i) => (
                   <div key={i} className="flex gap-4">
